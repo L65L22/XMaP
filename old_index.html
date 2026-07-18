@@ -52,6 +52,8 @@
     }
     .sheet.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
     .sheet h3 { margin:0 0 8px 0; font-size:1rem; }
+    .layer-row { display:flex; align-items:center; gap:8px; padding:8px 4px; border-bottom:1px solid #eee; }
+    .layer-row label { flex:1; font-size:0.95rem; }
     .file-row { display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid #f2f2f2; }
     .file-row label { flex:1; font-size:0.92rem; color:#333; }
     .status {
@@ -84,7 +86,7 @@
   <button id="layersBtn" class="fab" aria-label="Layers">☰</button>
 
   <div id="layersSheet" class="sheet" role="dialog" aria-hidden="true">
-    <h3>Inlästa filer</h3>
+    <h3>Layer controls</h3>
     <div id="layersList">
       <div style="color:#666;font-size:0.9rem;padding:8px 4px;">Inga lager inlästa. Vänta medan automatiska laddningen försöker hämta .kml från repo (om aktiverat).</div>
     </div>
@@ -104,12 +106,6 @@
 
     // Alla punkter använder denna fasta standardfärg
     const DEFAULT_POINT_COLOR = '#1976d2';
-
-    function filenameWithoutExt(path) {
-      if (!path) return '';
-      const base = path.split('/').pop();
-      return base.replace(/\.kml$/i, '');
-    }
 
     function normalizeCategoryKey(name) { return String(name || '').trim().toLowerCase(); }
 
@@ -132,7 +128,8 @@
     const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
-    const mapsMeta = []; // { url, name, layer, featureCount }
+    const categories = {};
+    const mapsMeta = [];
 
     const statusEl = document.getElementById('status');
     const layersBtn = document.getElementById('layersBtn');
@@ -149,9 +146,21 @@
       }
     }
 
-    // renderLayersList: visar endast filnamn (utan .kml) och feature-count i parentes
+    function ensureCategory(name) {
+      if (!name) name = 'default';
+      if (!categories[name]) categories[name] = L.layerGroup().addTo(map);
+      return categories[name];
+    }
+
+    // renderLayersList: visar endast "Inlästa filer" (ingen kategori-sektion)
     function renderLayersList() {
       layersListEl.innerHTML = '';
+
+      // Files section: list every loaded file with per-file checkbox
+      const filesHeader = document.createElement('div');
+      filesHeader.style.padding = '6px 4px';
+      filesHeader.innerHTML = '<strong>Inlästa filer</strong>';
+      layersListEl.appendChild(filesHeader);
 
       if (!mapsMeta.length) {
         const none = document.createElement('div');
@@ -171,9 +180,7 @@
           cb.addEventListener('change', () => { if (cb.checked) map.addLayer(m.layer); else map.removeLayer(m.layer); renderLayersList(); });
 
           const label = document.createElement('label');
-          // visa filnamn utan .kml och behåll antal i parentes
-          const name = filenameWithoutExt(m.name || m.url);
-          label.textContent = `${name} (${m.featureCount ?? '?'})`;
+          label.textContent = (m.name || m.url) + ' — ' + m.category + ' (' + (m.featureCount ?? '?') + ')';
 
           row.appendChild(cb);
           row.appendChild(label);
@@ -205,23 +212,27 @@
       return await res.text();
     }
 
-    // Laddar KML och använder alltid DEFAULT_POINT_COLOR för styling.
-    // Kategorier ignoreras; alla filer hanteras individuellt.
+    function inferCategoryFromFilename(filename) {
+      if (!filename) return 'default';
+      const f = filename.toLowerCase();
+      if (f.includes('blandat') || f.includes('bland')) return 'Blandat';
+      return 'default';
+    }
+
+    // Laddar KML och använder alltid DEFAULT_POINT_COLOR för styling
     async function loadKml(url, categoryName, displayName) {
       showStatus('Laddar ' + (displayName || url), 2500);
       try {
         if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — lägg vendor/togeojson.min.js i repo');
-
         const txt = await fetchText(url);
         const parser = new DOMParser();
         const kmlDoc = parser.parseFromString(txt, 'text/xml');
         const geojson = toGeoJSON.kml(kmlDoc);
-
         const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
-        if (Array.isArray(geojson.features)) {
-          geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
-        }
+        if (Array.isArray(geojson.features)) geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
 
+        const catName = categoryName || inferCategoryFromFilename(displayName || url) || 'default';
+        ensureCategory(catName);
         const color = DEFAULT_POINT_COLOR;
 
         const layer = L.geoJSON(geojson, {
@@ -235,20 +246,16 @@
           pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor: color, color: '#fff', weight:1, fillOpacity:0.95 })
         });
 
-        // Lägg lagret direkt på kartan
-        layer.addTo(map);
+        const cat = ensureCategory(catName);
+        layer.addTo(cat);
 
-        // Spara meta: name är filnamnet (behåll .kml i name så vi kan strippa vid visning)
-        const meta = { url, name: displayName || url, layer, featureCount };
+        const meta = { url, category: catName, name: displayName || url, layer, featureCount, categoryKey: normalizeCategoryKey(catName) };
         mapsMeta.push(meta);
 
         renderLayersList();
         showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
 
-        try {
-          const b = layer.getBounds && layer.getBounds();
-          if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 });
-        } catch (e) {}
+        try { const b = layer.getBounds && layer.getBounds(); if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 }); } catch (e) {}
       } catch (err) {
         console.error(err);
         showStatus('Fel: ' + err.message, 5000);
@@ -270,7 +277,7 @@
       if (!kmlFiles.length) { showStatus('Inga .kml i /kml', 5000); return; }
       showStatus('Laddar ' + kmlFiles.length + ' KML-filer...', 4000);
       for (const f of kmlFiles) {
-        try { await loadKml(f.download_url, null, f.name); } catch (err) { console.warn('Misslyckades ladda', f.name, err); }
+        try { const inferredCategory = inferCategoryFromFilename(f.name); await loadKml(f.download_url, inferredCategory, f.name); } catch (err) { console.warn('Misslyckades ladda', f.name, err); }
       }
       showStatus('Alla tillgängliga KML-filer är inlästa.', 3000);
     }
@@ -404,8 +411,9 @@
 
     // API for console use
     window.AppKml = {
-      load: (url, name) => loadKml(url, null, name),
-      listFiles: () => mapsMeta.map(m => ({ name: filenameWithoutExt(m.name || m.url), url: m.url, count: m.featureCount })),
+      load: (url, category, name) => loadKml(url, category, name),
+      listLayers: () => Object.keys(categories),
+      listFiles: () => mapsMeta.map(m => ({ name: m.name, url: m.url, category: m.category })),
       startLocation: startLocationTracking,
       stopLocation: stopLocationTracking
     };
