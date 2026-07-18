@@ -221,7 +221,6 @@
 
           const cb = document.createElement('input');
           cb.type = 'checkbox';
-          // Checkbox reflekterar om lagret är på kartan (initialt: inte tillagt => false)
           cb.checked = map.hasLayer(m.layer);
           cb.addEventListener('change', () => { if (cb.checked) map.addLayer(m.layer); else map.removeLayer(m.layer); renderLayersList(); });
 
@@ -261,7 +260,6 @@
     }
 
     // Laddar KML och använder alltid DEFAULT_POINT_COLOR för styling
-    // OBS: lagret skapas men läggs INTE automatiskt på kartan -> checkboxar är avmarkerade vid start
     async function loadKml(url, categoryName, displayName) {
       showStatus('Laddar ' + (displayName || url), 2500);
       try {
@@ -286,17 +284,15 @@
           pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor: color, color: '#fff', weight:1, fillOpacity:0.95 })
         });
 
-        // Notera: vi ADDAR INTE lagret till kartan här för att hålla UI avmarkerat
-        // layer.addTo(map); <-- borttagen
+        layer.addTo(map);
 
-        // Spara meta: name är filnamnet (behåll .kml i name så vi kan strippa vid visning)
         const meta = { url, name: displayName || url, layer, featureCount };
         mapsMeta.push(meta);
 
         renderLayersList();
         showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
 
-        // Vi gör ingen fitBounds här eftersom lagret inte är lagt till kartan automatiskt
+        try { const b = layer.getBounds && layer.getBounds(); if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 }); } catch (e) {}
       } catch (err) {
         console.error(err);
         showStatus('Fel: ' + err.message, 5000);
