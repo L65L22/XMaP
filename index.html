@@ -62,27 +62,19 @@
       text-overflow: ellipsis; white-space: nowrap;
     }
     .small-btn { background: #eee; border: none; padding:6px 8px; border-radius:6px; font-size:0.85rem; }
-    .color-input { width:36px; height:28px; border: none; background:transparent; padding:0; }
 
-    /* Anpassningar för målupplösningen 2340x1080 (och liknande hög-DPI mobilskärmar) */
-    /* Större knapp och mer luft på stora/höga enheter */
+    /* Anpassningar för större/high-DPI skärmar */
     @media (min-width: 1024px) and (min-height: 600px) {
       .fab { width:68px; height:68px; border-radius:34px; font-size:26px; bottom:28px; }
       .sheet { bottom:106px; left: 12px; right: 12px; padding:12px; border-radius:14px; }
       .small-btn { padding:8px 10px; font-size:0.95rem; }
     }
-
-    /* Specifikt för skärmar runt 1080×2340 (portrait high-res phones) eller 2340×1080 (landscape) */
     @media (min-device-width: 360px) and (min-resolution: 2dppx) {
-      /* öka touch-mål */
       .fab { width:72px; height:72px; border-radius:36px; font-size:28px; bottom:30px; }
-      .color-input { width:40px; height:30px; }
     }
-
-    /* Desktop/layout bredare än telefon: placera sheet höger/bred */
     @media (min-width: 780px) {
       .sheet { right: 12px; left: auto; bottom: 12px; width: 420px; max-height: 60%; border-radius:8px; }
-      .fab { left: 50%; transform: translateX(-50%); bottom: 20px; } /* fortsatt centrerad */
+      .fab { left: 50%; transform: translateX(-50%); bottom: 20px; }
     }
   </style>
 </head>
@@ -112,25 +104,12 @@
       branch: 'main',
     };
 
+    // Alla punkter använder denna fasta standardfärg
     const DEFAULT_POINT_COLOR = '#1976d2';
-    const BLANDAT_DEFAULT = '#eee111';
-    const categoryColors = {};
 
     function normalizeCategoryKey(name) { return String(name || '').trim().toLowerCase(); }
-    function defaultColorForCategory(name) {
-      if (!name) return DEFAULT_POINT_COLOR;
-      return normalizeCategoryKey(name) === 'blandat' ? BLANDAT_DEFAULT : DEFAULT_POINT_COLOR;
-    }
-    function getCategoryColor(name) {
-      if (!name) return DEFAULT_POINT_COLOR;
-      if (categoryColors[name]) return categoryColors[name];
-      const norm = normalizeCategoryKey(name);
-      for (const k of Object.keys(categoryColors)) {
-        if (normalizeCategoryKey(k) === norm) return categoryColors[k];
-      }
-      return defaultColorForCategory(name);
-    }
 
+    // Uppdaterar style rekursivt för ett layer (GeoJSON, CircleMarker eller Group)
     function updateLayerStyle(layer, color) {
       try {
         if (!layer) return;
@@ -149,8 +128,8 @@
     const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
-    const categories = {};
-    const mapsMeta = [];
+    const categories = {};      // name -> L.LayerGroup
+    const mapsMeta = [];        // { url, name, category, layer, featureCount }
 
     const statusEl = document.getElementById('status');
     const layersBtn = document.getElementById('layersBtn');
@@ -170,25 +149,13 @@
     function ensureCategory(name) {
       if (!name) name = 'default';
       if (!categories[name]) categories[name] = L.layerGroup().addTo(map);
-      if (!categoryColors[name]) setCategoryColor(name, defaultColorForCategory(name));
       return categories[name];
-    }
-
-    function setCategoryColor(name, color) {
-      if (!name) name = 'default';
-      categoryColors[name] = color;
-      const norm = normalizeCategoryKey(name);
-      for (const k of Object.keys(categories)) {
-        if (normalizeCategoryKey(k) === norm) updateLayerStyle(categories[k], color);
-      }
-      mapsMeta.forEach(meta => {
-        if (normalizeCategoryKey(meta.category) === norm) updateLayerStyle(meta.layer, color);
-      });
-      renderLayersList();
     }
 
     function renderLayersList() {
       layersListEl.innerHTML = '';
+
+      // Categories (no color inputs)
       const catNames = Object.keys(categories);
       if (catNames.length) {
         const catHeader = document.createElement('div');
@@ -199,22 +166,17 @@
         catNames.forEach(name => {
           const div = document.createElement('div');
           div.className = 'layer-row';
+
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.checked = map.hasLayer(categories[name]);
           cb.addEventListener('change', () => { if (cb.checked) map.addLayer(categories[name]); else map.removeLayer(categories[name]); renderLayersList(); });
+
           const label = document.createElement('label');
           label.textContent = name + ' (' + categories[name].getLayers().length + ')';
-          const colorInput = document.createElement('input');
-          colorInput.type = 'color';
-          colorInput.className = 'color-input';
-          const cur = getCategoryColor(name) || defaultColorForCategory(name) || DEFAULT_POINT_COLOR;
-          colorInput.value = cur;
-          colorInput.title = 'Välj färg för kategori ' + name;
-          colorInput.addEventListener('input', (ev) => setCategoryColor(name, ev.target.value));
+
           div.appendChild(cb);
           div.appendChild(label);
-          div.appendChild(colorInput);
           layersListEl.appendChild(div);
         });
       }
@@ -223,6 +185,7 @@
       divider.style.height = '8px';
       layersListEl.appendChild(divider);
 
+      // Files list
       const filesHeader = document.createElement('div');
       filesHeader.style.padding = '6px 4px';
       filesHeader.innerHTML = '<strong>Inlästa filer</strong>';
@@ -239,18 +202,22 @@
         mapsMeta.forEach((m) => {
           const row = document.createElement('div');
           row.className = 'file-row';
+
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.checked = map.hasLayer(m.layer);
           cb.addEventListener('change', () => { if (cb.checked) map.addLayer(m.layer); else map.removeLayer(m.layer); renderLayersList(); });
+
           const label = document.createElement('label');
           label.textContent = (m.name || m.url) + ' — ' + m.category + ' (' + (m.featureCount ?? '?') + ')';
+
           const zoomBtn = document.createElement('button');
           zoomBtn.className = 'small-btn';
           zoomBtn.textContent = 'Zoom';
           zoomBtn.addEventListener('click', () => {
             try { const b = m.layer.getBounds && m.layer.getBounds(); if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 }); } catch (e) {}
           });
+
           const soloBtn = document.createElement('button');
           soloBtn.className = 'small-btn';
           soloBtn.textContent = 'Ensam';
@@ -259,6 +226,7 @@
             mapsMeta.forEach(mm => { if (mm === m) map.addLayer(mm.layer); else map.removeLayer(mm.layer); });
             renderLayersList();
           });
+
           row.appendChild(cb);
           row.appendChild(label);
           row.appendChild(zoomBtn);
@@ -297,6 +265,7 @@
       return 'default';
     }
 
+    // Laddar KML och använder alltid DEFAULT_POINT_COLOR för styling
     async function loadKml(url, categoryName, displayName) {
       showStatus('Laddar ' + (displayName || url), 2500);
       try {
@@ -310,19 +279,17 @@
 
         const catName = categoryName || inferCategoryFromFilename(displayName || url) || 'default';
         ensureCategory(catName);
-        const currentColor = getCategoryColor(catName) || defaultColorForCategory(catName);
-        // register explicit color (so color input shows the registered/default value)
-        if (!categoryColors[catName]) categoryColors[catName] = currentColor;
+        const color = DEFAULT_POINT_COLOR;
 
         const layer = L.geoJSON(geojson, {
-          style: function(feature) { return { color: currentColor, fillColor: currentColor }; },
+          style: function(feature) { return { color: color, fillColor: color }; },
           onEachFeature: (feature, lyr) => {
             let html = '<strong>' + (feature.properties?.name || '') + '</strong><br/>';
             if (feature.properties?.description) html += feature.properties.description;
             if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
             lyr.bindPopup(html);
           },
-          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor: currentColor, color: '#fff', weight:1, fillOpacity:0.95 })
+          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor: color, color: '#fff', weight:1, fillOpacity:0.95 })
         });
 
         const cat = ensureCategory(catName);
@@ -388,12 +355,14 @@
       try { await loadAllKmlFromGitHub(owner, repo, branch, token); } catch (err) { console.error(err); showStatus('GitHub-auto fel: ' + err.message, 8000); }
     })();
 
+    // Layers button toggles the sheet
     layersBtn.addEventListener('click', () => {
       const open = layersSheet.classList.toggle('open');
       layersSheet.setAttribute('aria-hidden', (!open).toString());
       if (open) renderLayersList();
     });
 
+    // Close sheet on map click
     map.on('click', () => {
       if (layersSheet.classList.contains('open')) {
         layersSheet.classList.remove('open');
@@ -401,6 +370,7 @@
       }
     });
 
+    // API for console use
     window.AppKml = {
       load: (url, category, name) => loadKml(url, category, name),
       listLayers: () => Object.keys(categories),
