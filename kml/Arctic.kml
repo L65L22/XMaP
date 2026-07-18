@@ -1,0 +1,941 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Arctic Gym - Gym el Bad</name>
+    <Style id="icon-1701-0288D1-nodesc-normal">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="icon-1701-0288D1-nodesc-highlight">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <scale>1</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <StyleMap id="icon-1701-0288D1-nodesc">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#icon-1701-0288D1-nodesc-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#icon-1701-0288D1-nodesc-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="icon-1893-0288D1-nodesc-normal">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="icon-1893-0288D1-nodesc-highlight">
+      <IconStyle>
+        <color>ffd18802</color>
+        <scale>1</scale>
+        <Icon>
+          <href>https://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <scale>1</scale>
+      </LabelStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <StyleMap id="icon-1893-0288D1-nodesc">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#icon-1893-0288D1-nodesc-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#icon-1893-0288D1-nodesc-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Placemark>
+      <name>Actic Pontusbadet</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          22.1493656,65.5888717,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Arboga</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.8293794,59.3862379,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Avesta</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.1767143,60.1447515,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Maserhallen</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.41159,60.491884,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Emmaboda</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.5559358,56.628624,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Eskilstuna Kungsgatan</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.4985062,59.3778041,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Arctic Eskilstuna</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.5061188,59.3776863,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Eslöv</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.293229,55.843134,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Falköping Mösseberg</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.5392292,58.1671516,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Arctic Falköping</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.5635836,58.1658104,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Falun Britsarvet</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.621123,60.619587,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Falun City</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.629535,60.60427,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Falun Korsnäs</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.7162933,60.5894812,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Arctic Lugnets simhall</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.6566176,60.6183488,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Arena Grosvad</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.8064591,58.7142196,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Flen Swimming Pool</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.5737661,59.0560033,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Gävle City</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.145411,60.676215,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Gävle Hemsta</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.1559504,60.6596742,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Hallstahammar - Sports Complex</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.211143,59.615598,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Halmstad Flygstaden</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          12.803304,56.676992,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Halmstad Arena Bad</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          12.8859453,56.674105,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>ACTIC Sverige AB</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          12.85565,56.6792,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Hedemora</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.987108,60.278396,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Helsingborg Simhallsbadet</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          12.702674,56.039141,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Väggabadet Karlshamn</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          14.8796577,56.1619529,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Hammarö Nolgård</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.5050518,59.3427707,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Karlstad City</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.5026503,59.3829878,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Karlstad Outdoor Box</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.501869,59.4069196,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Karlstad Lamberget</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.5254809,59.3814722,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Karlstad Sundstabadet</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.5125895,59.3891395,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Katrineholm Duveholmshallen</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.1967782,58.9801189,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Kiruna - Sports Hall</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          20.2355419,67.8547394,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Kristianstad</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          14.167581,56.026534,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Kristinelundsbadet Köping</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.9835912,59.5082363,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Leksand Tegera Arena</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          14.9845653,60.7347759,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Lerum Vattenpalatset</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          12.26884,57.77271,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Badhuset Energikällan Actic gym</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.2220154,59.5944908,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Linköping Storgatan</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.6290869,58.411675,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Arctic Tornbyvägen 1</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.6154269,58.4223327,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Ljusdal Färila</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.8432664,61.7996256,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Ludvika Sporthall</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.192354,60.151248,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Lund Delphinenbadet</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.2130798,55.7225751,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Lund Genarp</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.396642,55.598256,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Bad I Lund</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.1837575,55.7003432,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Olympen</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.217142,55.710434,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Lund Veberöd</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.496665,55.6360626,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Gym</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.823491,58.7098602,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Kyrkogatan 18 Mora</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          14.537422,61.0045901,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Motala City</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.0383181,58.5361549,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Motala Indoor pool</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.0534199,58.542663,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Norrtälje</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          18.687436,59.7464124,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Nybro swimming pool</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.9158638,56.7422889,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Ockelbo simhall</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.7160784,60.8902743,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Arena Oskarshamn</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.4354371,57.2642867,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Öjebyns Indoor pool</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          21.4024543,65.3424758,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Arctic Sala Lärkans sport center</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.582423,59.921948,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Sandviken City</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.774647,60.622986,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Arena Skövde</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          13.8385918,58.3935162,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Hagsätra</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          18.0093675,59.2657193,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Haninge Torvalla</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          18.1554889,59.1660891,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Hägersten</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.954355,59.2897556,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Mörby Aquatic Center</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          18.046641,59.394171,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Salem</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.7668165,59.2018622,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Ulriksdal</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          18.0060889,59.3828226,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Uttran</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.8033443,59.2019223,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Tullinge</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.9033802,59.2063429,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Tumba</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.8436204,59.1986345,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Vendelsö</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          18.1748543,59.1901317,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Vendelsö</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          18.1748543,59.1901317,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Årsta</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          18.0508001,59.29688,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Säter</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.760751,60.345074,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Sydpoolen</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.6359076,59.1896339,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Södertälje Park</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.6263689,59.1932937,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Södertälje Storgatan</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.62682,59.197229,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Tranas Indoor pool</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          14.9884887,58.0319799,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Uppsala Centralbadet</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.636834,59.859163,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Uppsala Gränbystaden</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.674027,59.877199,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Uppsala Svandammen</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.6394517,59.8537117,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Uppsala Kapellgärdet</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.6378626,59.8726743,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Uppsala Stationsgatan</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.6512462,59.8572491,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Uppsala Stenhagen</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.563725,59.850032,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Uppsala Stenhagen</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          17.563725,59.850032,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Vara Badhus</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          12.96506,58.2650186,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Varberg Friskvågen</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          12.244316,57.105753,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Varberg, Hajen</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          12.2586369,57.1164516,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Vingåker</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.871771,59.045296,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Västervik</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.6437365,57.7499384,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Västerås Kristiansborgsbadet</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          16.5432335,59.6210423,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Växjö Simhall</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          14.8164696,56.8724079,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Örebro Brickebacken</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.2422949,59.2402515,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Örebro Eyrabadet</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.2185072,59.2659604,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Örebro Hagabadet</name>
+      <styleUrl>#icon-1701-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.1651906,59.2753943,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          15.217182,59.276379,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Treningssenter | Asker</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          10.4347637,59.8276158,0
+        </coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Actic Treningssenter | Slemmestad</name>
+      <styleUrl>#icon-1893-0288D1-nodesc</styleUrl>
+      <Point>
+        <coordinates>
+          10.4889654,59.7859712,0
+        </coordinates>
+      </Point>
+    </Placemark>
+  </Document>
+</kml>
