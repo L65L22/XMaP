@@ -24,14 +24,17 @@
     .sheet h3 { margin:0 0 8px 0; font-size:1rem; }
     .layer-row { display:flex; align-items:center; gap:8px; padding:8px 4px; border-bottom:1px solid #eee; }
     .layer-row label { flex:1; font-size:0.95rem; }
+    .file-row { display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid #f2f2f2; }
+    .file-row label { flex:1; font-size:0.92rem; color:#333; }
     .status {
       position: fixed; left: 12px; top: 12px; background: rgba(0,0,0,0.6); color: white; padding:6px 10px;
       border-radius:10px; font-size:0.85rem; z-index:1400; max-width: calc(100% - 120px); overflow: hidden;
       text-overflow: ellipsis; white-space: nowrap;
     }
+    .small-btn { background: #eee; border: none; padding:6px 8px; border-radius:6px; font-size:0.85rem; }
     @media (min-width: 780px) {
-      .sheet { right: 12px; left: auto; bottom: 12px; width: 320px; max-height: 60%; border-radius:8px; }
-      .fab { right: 340px; bottom: 18px; }
+      .sheet { right: 12px; left: auto; bottom: 12px; width: 360px; max-height: 60%; border-radius:8px; }
+      .fab { right: 380px; bottom: 18px; }
     }
   </style>
 </head>
@@ -54,22 +57,19 @@
 
   <script>
     // ---- Konfiguration för GitHub-auto-load ----
-    // Om du vill ange repo manuellt, fyll i owner/repo/branch här.
-    // Om owner eller repo lämnas tomma försöker skriptet autodetektera från URL (owner.github.io/repo).
     const githubAuto = {
-      enabled: true,         // sätt false för att inaktivera automatisk GitHub-laddning
-      owner: '',             // ex. 'l65l22'  (lämna tomt för autodetektion)
-      repo: '',              // ex. 'XMaP'   (lämna tomt för autodetektion)
-      branch: 'main',        // valfri (t.ex. 'main' eller 'gh-pages')
-      // token: 'ghp_xxx'    // INTE REKOMMENDERAT: om ditt repo är privat behöver du auth, men undvik lägga token i klientkod
+      enabled: true,
+      owner: '',
+      repo: '',
+      branch: 'main',
+      // token: '' // ej rekommenderat i klientkod
     };
-    // --------------------------------------------
 
     const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
-    const categories = {};
-    const mapsMeta = [];
+    const categories = {};      // name -> L.LayerGroup
+    const mapsMeta = [];        // lista med { url, name, category, layer, featureCount }
 
     const statusEl = document.getElementById('status');
     const layersBtn = document.getElementById('layersBtn');
@@ -92,40 +92,108 @@
       return categories[name];
     }
 
+    function toggleCategory(name, visible) {
+      const grp = categories[name];
+      if (!grp) return;
+      if (visible) map.addLayer(grp); else map.removeLayer(grp);
+      // update file checkboxes to reflect their actual layers
+      renderLayersList(); 
+    }
+
+    function toggleFileLayer(meta, visible) {
+      if (!meta || !meta.layer) return;
+      if (visible) map.addLayer(meta.layer); else map.removeLayer(meta.layer);
+      // update category checkbox counts/checked state
+      renderLayersList();
+    }
+
     function renderLayersList() {
       layersListEl.innerHTML = '';
-      const names = Object.keys(categories);
-      if (!names.length) {
-        layersListEl.innerHTML = '<div style="color:#666;font-size:0.9rem;padding:8px 4px;">Inga lager inlästa.</div>';
-        return;
-      }
-      names.forEach(name => {
-        const row = document.createElement('div');
-        row.className = 'layer-row';
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = map.hasLayer(categories[name]);
-        cb.addEventListener('change', () => cb.checked ? map.addLayer(categories[name]) : map.removeLayer(categories[name]));
-        const label = document.createElement('label');
-        label.textContent = name + ' (' + categories[name].getLayers().length + ')';
-        row.appendChild(cb);
-        row.appendChild(label);
-        layersListEl.appendChild(row);
-      });
 
-      const hr = document.createElement('div');
-      hr.style.padding = '8px 4px';
-      hr.style.fontSize = '0.9rem';
-      hr.style.color = '#444';
-      hr.innerHTML = '<strong>Inlästa filer</strong>';
-      layersListEl.appendChild(hr);
-      mapsMeta.forEach(m => {
-        const r = document.createElement('div');
-        r.style.padding = '6px 4px';
-        r.style.fontSize = '0.9rem';
-        r.textContent = (m.name || m.url) + ' — ' + m.category + ' (' + (m.featureCount ?? '?') + ')';
-        layersListEl.appendChild(r);
-      });
+      // Categories section (each category toggles its LayerGroup)
+      const catNames = Object.keys(categories);
+      if (catNames.length) {
+        const catHeader = document.createElement('div');
+        catHeader.style.padding = '6px 4px';
+        catHeader.innerHTML = '<strong>Kategorier</strong>';
+        layersListEl.appendChild(catHeader);
+
+        catNames.forEach(name => {
+          const div = document.createElement('div');
+          div.className = 'layer-row';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = map.hasLayer(categories[name]);
+          cb.addEventListener('change', () => toggleCategory(name, cb.checked));
+          const label = document.createElement('label');
+          label.textContent = name + ' (' + categories[name].getLayers().length + ')';
+          div.appendChild(cb);
+          div.appendChild(label);
+          layersListEl.appendChild(div);
+        });
+      }
+
+      // Divider
+      const divider = document.createElement('div');
+      divider.style.height = '8px';
+      layersListEl.appendChild(divider);
+
+      // Files section: list every loaded file with per-file checkbox
+      const filesHeader = document.createElement('div');
+      filesHeader.style.padding = '6px 4px';
+      filesHeader.innerHTML = '<strong>Inlästa filer</strong>';
+      layersListEl.appendChild(filesHeader);
+
+      if (!mapsMeta.length) {
+        const none = document.createElement('div');
+        none.style.color = '#666';
+        none.style.fontSize = '0.9rem';
+        none.style.padding = '8px 4px';
+        none.textContent = 'Inga filer inlästa.';
+        layersListEl.appendChild(none);
+      } else {
+        mapsMeta.forEach((m, idx) => {
+          const row = document.createElement('div');
+          row.className = 'file-row';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = map.hasLayer(m.layer);
+          cb.addEventListener('change', () => toggleFileLayer(m, cb.checked));
+          const label = document.createElement('label');
+          label.textContent = (m.name || m.url) + ' — ' + m.category + ' (' + (m.featureCount ?? '?') + ')';
+          // small actions (zoom to layer)
+          const zoomBtn = document.createElement('button');
+          zoomBtn.className = 'small-btn';
+          zoomBtn.textContent = 'Zoom';
+          zoomBtn.addEventListener('click', () => {
+            try {
+              const b = m.layer.getBounds && m.layer.getBounds();
+              if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 });
+            } catch (e) {}
+          });
+          row.appendChild(cb);
+          row.appendChild(label);
+          row.appendChild(zoomBtn);
+          layersListEl.appendChild(row);
+        });
+      }
+
+      // Optional: show a small control row to show/hide all files
+      const ctrlRow = document.createElement('div');
+      ctrlRow.style.display = 'flex';
+      ctrlRow.style.gap = '8px';
+      ctrlRow.style.padding = '8px 4px';
+      const showAllBtn = document.createElement('button');
+      showAllBtn.className = 'small-btn';
+      showAllBtn.textContent = 'Visa alla';
+      showAllBtn.addEventListener('click', () => { mapsMeta.forEach(m => map.addLayer(m.layer)); renderLayersList(); });
+      const hideAllBtn = document.createElement('button');
+      hideAllBtn.className = 'small-btn';
+      hideAllBtn.textContent = 'Göm alla';
+      hideAllBtn.addEventListener('click', () => { mapsMeta.forEach(m => map.removeLayer(m.layer)); renderLayersList(); });
+      ctrlRow.appendChild(showAllBtn);
+      ctrlRow.appendChild(hideAllBtn);
+      layersListEl.appendChild(ctrlRow);
     }
 
     async function fetchText(url, opts) {
@@ -162,7 +230,8 @@
         const cat = ensureCategory(categoryName || 'default');
         layer.addTo(cat);
 
-        mapsMeta.push({ url, category: categoryName || 'default', name: displayName || url, layer, featureCount });
+        const meta = { url, category: categoryName || 'default', name: displayName || url, layer, featureCount };
+        mapsMeta.push(meta);
         renderLayersList();
         showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
 
@@ -195,7 +264,6 @@
       }
       const entries = await res.json();
       if (!Array.isArray(entries)) throw new Error('GitHub svarade med oväntat format');
-      // filtrera .kml-filer och ladda dem
       const kmlFiles = entries.filter(e => e.type === 'file' && e.name.toLowerCase().endsWith('.kml'));
       if (!kmlFiles.length) { showStatus('Inga .kml i /kml', 5000); return; }
       showStatus('Laddar ' + kmlFiles.length + ' KML-filer...', 4000);
@@ -209,11 +277,10 @@
       showStatus('Alla tillgängliga KML-filer är inlästa.', 3000);
     }
 
-    // Autodetektera owner/repo från Pages-URL (owner.github.io/repo)
     function detectOwnerRepoFromLocation() {
       try {
-        const host = window.location.hostname; // e.g. l65l22.github.io
-        const path = window.location.pathname; // e.g. /XMaP/...
+        const host = window.location.hostname;
+        const path = window.location.pathname;
         if (!host.endsWith('.github.io')) return null;
         const owner = host.split('.')[0];
         const parts = path.split('/').filter(Boolean);
@@ -223,7 +290,7 @@
       } catch (e) { return null; }
     }
 
-    // Try auto-loading from GitHub if enabled
+    // Auto-load flow
     (async () => {
       if (!githubAuto.enabled) { showStatus('Automatisk GitHub-laddning inaktiverad'); return; }
 
@@ -273,6 +340,7 @@
     window.AppKml = {
       load: (url, category, name) => loadKml(url, category, name),
       listLayers: () => Object.keys(categories),
+      listFiles: () => mapsMeta.map(m => ({ name: m.name, url: m.url, category: m.category }))
     };
   </script>
 </body>
