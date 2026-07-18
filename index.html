@@ -203,47 +203,56 @@
     }
 
     async function loadKml(url, categoryName, displayName) {
-      showStatus('Laddar ' + (displayName || url), 2500);
-      try {
-        if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — lägg vendor/togeojson.min.js i repo');
+  showStatus('Laddar ' + (displayName || url), 2500);
+  try {
+    if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — lägg vendor/togeojson.min.js i repo');
 
-        const txt = await fetchText(url);
-        const parser = new DOMParser();
-        const kmlDoc = parser.parseFromString(txt, 'text/xml');
-        const geojson = toGeoJSON.kml(kmlDoc);
+    const txt = await fetchText(url);
+    const parser = new DOMParser();
+    const kmlDoc = parser.parseFromString(txt, 'text/xml');
+    const geojson = toGeoJSON.kml(kmlDoc);
 
-        const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
-        if (Array.isArray(geojson.features)) {
-          geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
-        }
-
-        const layer = L.geoJSON(geojson, {
-          onEachFeature: (feature, lyr) => {
-            let html = '<strong>' + (feature.properties?.name || '') + '</strong><br/>';
-            if (feature.properties?.description) html += feature.properties.description;
-            if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
-            lyr.bindPopup(html);
-          },
-          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor:'#1976d2', color:'#fff', weight:1, fillOpacity:0.95 })
-        });
-
-        const cat = ensureCategory(categoryName || 'default');
-        layer.addTo(cat);
-
-        const meta = { url, category: categoryName || 'default', name: displayName || url, layer, featureCount };
-        mapsMeta.push(meta);
-        renderLayersList();
-        showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
-
-        try {
-          const b = layer.getBounds && layer.getBounds();
-          if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 });
-        } catch (e) {}
-      } catch (err) {
-        console.error(err);
-        showStatus('Fel: ' + err.message, 5000);
-      }
+    const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
+    if (Array.isArray(geojson.features)) {
+      geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
     }
+
+    // Bestäm punktfärg baserat på kategori (case-insensitive)
+    const pointColor = (categoryName && String(categoryName).toLowerCase() === 'blandat') ? '#eee111' : '#1976d2';
+
+    const layer = L.geoJSON(geojson, {
+      onEachFeature: (feature, lyr) => {
+        let html = '<strong>' + (feature.properties?.name || '') + '</strong><br/>';
+        if (feature.properties?.description) html += feature.properties.description;
+        if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
+        lyr.bindPopup(html);
+      },
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 6,
+        fillColor: pointColor,
+        color: '#fff',
+        weight: 1,
+        fillOpacity: 0.95
+      })
+    });
+
+    const cat = ensureCategory(categoryName || 'default');
+    layer.addTo(cat);
+
+    const meta = { url, category: categoryName || 'default', name: displayName || url, layer, featureCount };
+    mapsMeta.push(meta);
+    renderLayersList();
+    showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
+
+    try {
+      const b = layer.getBounds && layer.getBounds();
+      if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 });
+    } catch (e) {}
+  } catch (err) {
+    console.error(err);
+    showStatus('Fel: ' + err.message, 5000);
+  }
+}
 
     // GitHub: hämta listning av /kml i repo och ladda alla .kml (download_url)
     async function loadAllKmlFromGitHub(owner, repo, branch, token) {
