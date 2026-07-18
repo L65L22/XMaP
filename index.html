@@ -128,8 +128,8 @@
     const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
-    const categories = {};      // name -> L.LayerGroup
-    const mapsMeta = [];        // { url, name, category, layer, featureCount }
+    const categories = {};
+    const mapsMeta = [];
 
     const statusEl = document.getElementById('status');
     const layersBtn = document.getElementById('layersBtn');
@@ -152,40 +152,11 @@
       return categories[name];
     }
 
+    // renderLayersList: visar endast "Inlästa filer" (ingen kategori-sektion)
     function renderLayersList() {
       layersListEl.innerHTML = '';
 
-      // Categories (no color inputs)
-      const catNames = Object.keys(categories);
-      if (catNames.length) {
-        const catHeader = document.createElement('div');
-        catHeader.style.padding = '6px 4px';
-        catHeader.innerHTML = '<strong>Kategorier</strong>';
-        layersListEl.appendChild(catHeader);
-
-        catNames.forEach(name => {
-          const div = document.createElement('div');
-          div.className = 'layer-row';
-
-          const cb = document.createElement('input');
-          cb.type = 'checkbox';
-          cb.checked = map.hasLayer(categories[name]);
-          cb.addEventListener('change', () => { if (cb.checked) map.addLayer(categories[name]); else map.removeLayer(categories[name]); renderLayersList(); });
-
-          const label = document.createElement('label');
-          label.textContent = name + ' (' + categories[name].getLayers().length + ')';
-
-          div.appendChild(cb);
-          div.appendChild(label);
-          layersListEl.appendChild(div);
-        });
-      }
-
-      const divider = document.createElement('div');
-      divider.style.height = '8px';
-      layersListEl.appendChild(divider);
-
-      // Files list
+      // Files section: list every loaded file with per-file checkbox
       const filesHeader = document.createElement('div');
       filesHeader.style.padding = '6px 4px';
       filesHeader.innerHTML = '<strong>Inlästa filer</strong>';
@@ -235,6 +206,7 @@
         });
       }
 
+      // Show/Hide all controls
       const ctrlRow = document.createElement('div');
       ctrlRow.style.display = 'flex';
       ctrlRow.style.gap = '8px';
