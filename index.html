@@ -32,7 +32,7 @@
     }
     .fab:active { transform: translateX(-50%) translateY(1px); }
 
-    /* share-knapp: placera uppe till höger */
+    /* share-knapp: placera uppe till höger (tvingande regler) */
     .share-btn {
       position: fixed;
       top: 12px;
@@ -50,6 +50,10 @@
       font-size: 18px;
       border: none;
       padding: 0;
+      /* Extra kraft: om något försöker dölja knappen så överskrivs det */
+      z-index: 99999 !important;
+      display: flex !important;
+      visibility: visible !important;
     }
     .share-btn:active { transform: translateY(1px); }
 
@@ -135,7 +139,9 @@
       return base.replace(/\.kml$/i, '');
     }
 
-    // Rekursiv style-uppdaterare (används för ev. framtida ändringar)
+    function normalizeCategoryKey(name) { return String(name || '').trim().toLowerCase(); }
+
+    // Uppdaterar style rekursivt för ett layer (GeoJSON, CircleMarker eller Group)
     function updateLayerStyle(layer, color) {
       try {
         if (!layer) return;
@@ -151,32 +157,6 @@
       } catch (e) { console.warn('Could not update style for a layer', e); }
     }
 
-    // --- RASTIKON OCH MATCHER ---
-    // Återanvändbar ikon för rastplats
-    const rastIcon = L.icon({
-      iconUrl: './Icon/rastplats.png',
-      iconSize: [28, 28],      // justera efter behov
-      iconAnchor: [14, 28],    // botten mitt
-      popupAnchor: [0, -28]
-    });
-
-    // Enkel heuristik: kolla vanliga property-fält för substring "rastplats"
-    function isRastplatsFeature(feature) {
-      if (!feature || !feature.properties) return false;
-      const p = feature.properties;
-      const candidates = [
-        p.name,
-        p.Name,
-        p.title,
-        p.type,
-        p.category,
-        p.categoryName,
-        p.description
-      ];
-      return candidates.some(v => typeof v === 'string' && v.toLowerCase().includes('rastplats'));
-    }
-    // --- slut RASTIKON ---
-
     const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
@@ -187,6 +167,31 @@
     const layersSheet = document.getElementById('layersSheet');
     const layersListEl = document.getElementById('layersList');
     const sharePosBtn = document.getElementById('sharePosBtn');
+
+    // Safety: tvinga fram share-knappen i DOM och applicera nödvändiga stilar
+    (function ensureShareButtonVisible(){
+      const btn = sharePosBtn || document.getElementById('sharePosBtn');
+      if (!btn) {
+        console.warn('sharePosBtn saknas i DOM');
+        return;
+      }
+      // Flytta längst bak i body så den inte hamnar bakom något element med clipping
+      document.body.appendChild(btn);
+      // Tvinga CSS-stilar så den ligger ovanpå kartan och är synlig
+      btn.style.display = 'flex';
+      btn.style.visibility = 'visible';
+      btn.style.zIndex = '99999';
+      btn.style.position = 'fixed';
+      btn.style.top = '12px';
+      btn.style.right = '12px';
+      btn.style.width = '44px';
+      btn.style.height = '44px';
+      btn.style.borderRadius = '8px';
+      btn.style.background = '#e53935';
+      btn.style.color = '#fff';
+      btn.style.border = 'none';
+      btn.style.padding = '0';
+    })();
 
     function showStatus(msg, timeout = 3000) {
       if (!msg) { statusEl.style.display = 'none'; return; }
@@ -254,21 +259,17 @@
       return await res.text();
     }
 
-    // Laddar KML och använder rastIcon för "Rastplats"-features, annars cirkelmarkör.
+    // Laddar KML och använder alltid DEFAULT_POINT_COLOR för styling
     async function loadKml(url, categoryName, displayName) {
       showStatus('Laddar ' + (displayName || url), 2500);
       try {
         if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — lägg vendor/togeojson.min.js i repo');
-
         const txt = await fetchText(url);
         const parser = new DOMParser();
         const kmlDoc = parser.parseFromString(txt, 'text/xml');
         const geojson = toGeoJSON.kml(kmlDoc);
-
         const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
-        if (Array.isArray(geojson.features)) {
-          geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
-        }
+        if (Array.isArray(geojson.features)) geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
 
         const color = DEFAULT_POINT_COLOR;
 
@@ -280,29 +281,18 @@
             if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
             lyr.bindPopup(html);
           },
-          pointToLayer: (feature, latlng) => {
-            // Om feature matchar som rastplats -> ikon, annars circleMarker
-            if (isRastplatsFeature(feature)) {
-              return L.marker(latlng, { icon: rastIcon });
-            }
-            return L.circleMarker(latlng, { radius:6, fillColor: color, color: '#fff', weight:1, fillOpacity:0.95 });
-          }
+          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor: color, color: '#fff', weight:1, fillOpacity:0.95 })
         });
 
-        // Lägg lagret direkt på kartan
         layer.addTo(map);
 
-        // Spara meta: name är filnamnet (behåll .kml i name så vi kan strippa vid visning)
         const meta = { url, name: displayName || url, layer, featureCount };
         mapsMeta.push(meta);
 
         renderLayersList();
         showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
 
-        try {
-          const b = layer.getBounds && layer.getBounds();
-          if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 });
-        } catch (e) {}
+        try { const b = layer.getBounds && layer.getBounds(); if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 }); } catch (e) {}
       } catch (err) {
         console.error(err);
         showStatus('Fel: ' + err.message, 5000);
