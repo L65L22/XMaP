@@ -2,97 +2,164 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Aggregator (KML only)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Aggregator (KML viewer — mobile)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { margin:0; font-family: Arial, Helvetica, sans-serif; }
-    #map { position: absolute; top:110px; bottom:0; left:0; right:0; }
-    #control { position: absolute; left:10px; top:10px; right:10px; height:86px; background: rgba(255,255,255,0.96); padding:8px; border-radius:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; z-index:1000; }
-    input[type=text] { padding:6px; }
-    .grow { flex:1; min-width:200px; }
-    button { padding:6px 10px; }
-    #layersList { position:absolute; right:10px; top:10px; background:white; padding:8px; border-radius:6px; max-height:300px; overflow:auto; z-index:1000; }
-    .catItem { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
-    .small { font-size:0.9em; color:#444; }
-    #debug { position:absolute; left:10px; bottom:10px; background:rgba(255,255,255,0.95); padding:8px; border-radius:6px; max-height:220px; overflow:auto; width:420px; font-size:0.85em; z-index:1000; }
+    /* Full-screen map + mobile-friendly UI */
+    html,body { height:100%; margin:0; font-family: -apple-system, Roboto, "Segoe UI", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+    #map { position:fixed; inset:0; }
+    /* Floating layer button */
+    .fab {
+      position: fixed;
+      right: 14px;
+      bottom: 18px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background: #1976d2;
+      color: white;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.24);
+      z-index: 1400;
+      font-size: 22px;
+      touch-action: manipulation;
+    }
+    .fab:active { transform: translateY(1px); }
+    /* Bottom sheet for layers */
+    .sheet {
+      position: fixed;
+      left: 8px;
+      right: 8px;
+      bottom: 84px;
+      max-height: 56%;
+      background: rgba(255,255,255,0.98);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      padding: 10px;
+      overflow:auto;
+      z-index: 1390;
+      transform: translateY(20px);
+      transition: transform 200ms ease, opacity 200ms ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sheet.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .sheet h3 { margin:0 0 8px 0; font-size:1rem; }
+    .layer-row { display:flex; align-items:center; gap:8px; padding:8px 4px; border-bottom:1px solid #eee; }
+    .layer-row label { flex:1; font-size:0.95rem; }
+    /* Small status bubble top */
+    .status {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding:6px 10px;
+      border-radius:10px;
+      font-size:0.85rem;
+      z-index:1400;
+      max-width: calc(100% - 120px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    @media (min-width: 780px) {
+      /* Desktop: move sheet to right */
+      .sheet { right: 12px; left: auto; bottom: 12px; width: 320px; max-height: 60%; border-radius:8px; }
+      .fab { right: 340px; bottom: 18px; }
+    }
   </style>
 </head>
 <body>
-  <div id="control">
-    <div style="display:flex;gap:8px;align-items:center;flex:1;">
-      <input id="kmlUrl" class="grow" type="text" placeholder="Manuell raw URL till .kml (valfritt)" />
-      <input id="category" type="text" placeholder="Kategori (t.ex. 'Vandringsleder')" style="width:160px" />
-      <button id="addBtn">Lägg till</button>
-    </div>
+  <div id="map"></div>
 
-    <div style="display:flex;gap:8px;align-items:center;width:100%;">
-      <button id="loadManifestBtn">Läs kml/list.json</button>
-      <span class="small">— Använd manifestet i /kml för att ladda flera filer</span>
-    </div>
+  <div class="status" id="status" aria-live="polite" style="display:none;"></div>
 
-    <div style="width:100%;display:flex;gap:8px;align-items:center;">
-      <span id="status" style="font-size:0.95em;color:#333"></span>
+  <button id="layersBtn" class="fab" aria-label="Layers">☰</button>
+
+  <div id="layersSheet" class="sheet" role="dialog" aria-hidden="true">
+    <h3>Layer controls</h3>
+    <div id="layersList">
+      <!-- Populated dynamically; show categories and toggles -->
+      <div style="color:#666;font-size:0.9rem;padding:8px 4px;">Inga lager inlästa. Lägg till .kml genom att redigera initialFiles i index.html.</div>
     </div>
   </div>
 
-  <div id="layersList"></div>
-  <div id="map"></div>
-  <div id="debug"><strong>Debug</strong><div id="debugContent"></div></div>
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Lokal togeojson (behöver finnas: vendor/togeojson.min.js) -->
   <script src="./vendor/togeojson.min.js"></script>
+
   <script>
-    const map = L.map('map').setView([59.33, 18.06], 6);
+    // initialFiles: redigera här för att ladda .kml automatiskt (ingen UI för att lägga till)
+    // Exempel: const initialFiles = [{ file: './kml/map1.kml', category: 'ArcticGym', name: 'Map 1' }];
+    const initialFiles = []; // <-- tom som default (ingen automatisk hämtning)
+
+    const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
-    const categories = {};
+    const categories = {}; // name -> L.LayerGroup
     const mapsMeta = [];
-    const statusEl = document.getElementById('status');
-    const layersListEl = document.getElementById('layersList');
-    const debugEl = document.getElementById('debugContent');
 
-    function setStatus(s, err=false) {
-      statusEl.textContent = s || '';
-      const d = document.createElement('div');
-      d.textContent = s;
-      if (err) d.style.color = '#b00';
-      debugEl.prepend(d);
-      if (err) console.error(s); else console.log(s);
+    const statusEl = document.getElementById('status');
+    const layersBtn = document.getElementById('layersBtn');
+    const layersSheet = document.getElementById('layersSheet');
+    const layersListEl = document.getElementById('layersList');
+
+    function showStatus(msg, timeout = 3000) {
+      if (!msg) { statusEl.style.display = 'none'; return; }
+      statusEl.textContent = msg;
+      statusEl.style.display = 'block';
+      if (timeout) {
+        clearTimeout(showStatus._t);
+        showStatus._t = setTimeout(()=> statusEl.style.display = 'none', timeout);
+      }
     }
 
     function ensureCategory(name) {
       if (!name) name = 'default';
-      if (!categories[name]) categories[name] = L.layerGroup().addTo(map);
+      if (!categories[name]) {
+        categories[name] = L.layerGroup().addTo(map);
+      }
       return categories[name];
     }
 
     function renderLayersList() {
-      layersListEl.innerHTML = '<strong>Kategorier</strong><br/>';
-      Object.keys(categories).forEach(name => {
-        const div = document.createElement('div');
-        div.className = 'catItem';
+      layersListEl.innerHTML = '';
+      const names = Object.keys(categories);
+      if (!names.length) {
+        layersListEl.innerHTML = '<div style="color:#666;font-size:0.9rem;padding:8px 4px;">Inga lager inlästa. Redigera initialFiles om du vill ladda .kml automatiskt.</div>';
+        return;
+      }
+      names.forEach(name => {
+        const row = document.createElement('div');
+        row.className = 'layer-row';
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.checked = map.hasLayer(categories[name]);
-        cb.onchange = () => cb.checked ? map.addLayer(categories[name]) : map.removeLayer(categories[name]);
-        const label = document.createElement('span');
+        cb.addEventListener('change', () => cb.checked ? map.addLayer(categories[name]) : map.removeLayer(categories[name]));
+        const label = document.createElement('label');
         label.textContent = name + ' (' + categories[name].getLayers().length + ')';
-        div.appendChild(cb);
-        div.appendChild(label);
-        layersListEl.appendChild(div);
+        row.appendChild(cb);
+        row.appendChild(label);
+        layersListEl.appendChild(row);
       });
 
-      const metaDiv = document.createElement('div');
-      metaDiv.style.marginTop = '8px';
-      metaDiv.innerHTML = '<strong>Inlästa filer</strong><br/>';
+      // list loaded maps
+      const hr = document.createElement('div');
+      hr.style.padding = '8px 4px';
+      hr.style.fontSize = '0.9rem';
+      hr.style.color = '#444';
+      hr.innerHTML = '<strong>Inlästa filer</strong>';
+      layersListEl.appendChild(hr);
       mapsMeta.forEach(m => {
         const r = document.createElement('div');
-        r.textContent = m.name + ' → ' + m.category + ' | features: ' + (m.featureCount ?? '?');
-        metaDiv.appendChild(r);
+        r.style.padding = '6px 4px';
+        r.style.fontSize = '0.9rem';
+        r.textContent = (m.name || m.url) + ' — ' + m.category + ' (' + (m.featureCount ?? '?') + ')';
+        layersListEl.appendChild(r);
       });
-      layersListEl.appendChild(metaDiv);
     }
 
     async function fetchText(url) {
@@ -102,22 +169,18 @@
     }
 
     async function loadKml(url, categoryName, displayName) {
-      setStatus('Laddar KML: ' + url);
+      showStatus('Laddar ' + (displayName || url), 2500);
       try {
-        if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas, lägg vendor/togeojson.min.js i repo');
+        if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — lägg vendor/togeojson.min.js i repo');
 
-        const kmlText = await fetchText(url);
+        const txt = await fetchText(url);
         const parser = new DOMParser();
-        const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
+        const kmlDoc = parser.parseFromString(txt, 'text/xml');
         const geojson = toGeoJSON.kml(kmlDoc);
 
         const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
-        setStatus('Konverterat till GeoJSON, features: ' + featureCount);
         if (Array.isArray(geojson.features)) {
-          geojson.features.forEach(f => {
-            if (!f.properties) f.properties = {};
-            f.properties._sourceMap = displayName || url;
-          });
+          geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
         }
 
         const layer = L.geoJSON(geojson, {
@@ -127,57 +190,55 @@
             if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
             lyr.bindPopup(html);
           },
-          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor:'#3388ff', color:'#fff', weight:1, fillOpacity:0.9 })
+          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor:'#1976d2', color:'#fff', weight:1, fillOpacity:0.95 })
         });
 
         const cat = ensureCategory(categoryName || 'default');
         layer.addTo(cat);
+
         mapsMeta.push({ url, category: categoryName || 'default', name: displayName || url, layer, featureCount });
         renderLayersList();
-        setStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)');
-        try { const b = layer.getBounds && layer.getBounds(); if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 }); } catch(e){}
+        showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
+
+        try {
+          const b = layer.getBounds && layer.getBounds();
+          if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 });
+        } catch (e) {}
       } catch (err) {
         console.error(err);
-        setStatus('Fel: ' + err.message, true);
+        showStatus('Fel: ' + err.message, 5000);
       }
     }
 
-    document.getElementById('addBtn').addEventListener('click', () => {
-      const url = document.getElementById('kmlUrl').value.trim();
-      const cat = document.getElementById('category').value.trim() || 'default';
-      if (!url) { setStatus('Ange en URL till .kml', true); return; }
-      loadKml(url, cat, url);
+    // Layers button toggles the sheet
+    layersBtn.addEventListener('click', () => {
+      const open = layersSheet.classList.toggle('open');
+      layersSheet.setAttribute('aria-hidden', (!open).toString());
+      if (open) renderLayersList();
     });
 
-    document.getElementById('loadManifestBtn').addEventListener('click', async () => {
-      setStatus('Hämtar ./kml/list.json ...');
-      try {
-        const txt = await fetchText('./kml/list.json');
-        setStatus('Manifest hämtad, längd: ' + txt.length + ' tecken');
-        const list = JSON.parse(txt);
-        if (!Array.isArray(list)) throw new Error('list.json måste vara en array');
-        for (const item of list) {
-          if (typeof item === 'string') {
-            await loadKml('./kml/' + item, 'default', item);
-          } else if (item && item.file) {
-            await loadKml('./kml/' + item.file, item.category || 'default', item.file);
-          } else {
-            setStatus('Ignorerar manifest-entry: ' + JSON.stringify(item), true);
-          }
-        }
-        setStatus('Manifest klar.');
-      } catch (err) {
-        console.error(err);
-        setStatus('Fel vid manifest: ' + err.message, true);
+    // Close sheet on map click (mobile-friendly)
+    map.on('click', () => {
+      if (layersSheet.classList.contains('open')) {
+        layersSheet.classList.remove('open');
+        layersSheet.setAttribute('aria-hidden','true');
       }
     });
 
+    // Load any initialFiles defined in the script (code-based, not via UI)
     (async () => {
-      try {
-        const resp = await fetch('./kml/list.json');
-        if (resp.ok) document.getElementById('loadManifestBtn').click();
-      } catch(e){}
+      if (!initialFiles || !initialFiles.length) return;
+      for (const f of initialFiles) {
+        // expect f.file to be a path (e.g. './kml/map1.kml') and optional category/name
+        await loadKml(f.file, f.category || 'default', f.name || f.file);
+      }
     })();
+
+    // Expose a lightweight API for programmatic adding (if you want to call from console)
+    window.AppKml = {
+      load: (url, category, name) => loadKml(url, category, name),
+      listLayers: () => Object.keys(categories),
+    };
   </script>
 </body>
 </html>
