@@ -27,8 +27,8 @@
     </div>
 
     <div style="display:flex;gap:8px;align-items:center;width:100%;">
-      <button id="loadManifestBtn">Läs klm/list.json</button>
-      <span class="small">— Eller hämta från GitHub repo:</span>
+      <button id="loadManifestBtn">Läs kml/list.json</button>
+      <span class="small">— Eller hämta direkt från GitHub repo:</span>
       <input id="ghOwner" type="text" placeholder="owner" style="width:100px" />
       <input id="ghRepo" type="text" placeholder="repo" style="width:120px" />
       <input id="ghBranch" type="text" placeholder="branch (valfritt)" style="width:100px" />
@@ -47,7 +47,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Lokal togeojson (behöver finnas: vendor/togeojson.min.js) -->
   <script src="./vendor/togeojson.min.js"></script>
-  <!-- JSZip tas bort eftersom vi inte hanterar KMZ längre -->
   <script>
     const map = L.map('map').setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
@@ -155,17 +154,17 @@
     });
 
     document.getElementById('loadManifestBtn').addEventListener('click', async () => {
-      setStatus('Hämtar ./klm/list.json ...');
+      setStatus('Hämtar ./kml/list.json ...');
       try {
-        const txt = await fetchText('./klm/list.json');
+        const txt = await fetchText('./kml/list.json');
         setStatus('Manifest hämtad, längd: ' + txt.length + ' tecken');
         const list = JSON.parse(txt);
         if (!Array.isArray(list)) throw new Error('list.json måste vara en array');
         for (const item of list) {
           if (typeof item === 'string') {
-            await loadKml('./klm/' + item, 'default', item);
+            await loadKml('./kml/' + item, 'default', item);
           } else if (item && item.file) {
-            await loadKml('./klm/' + item.file, item.category || 'default', item.file);
+            await loadKml('./kml/' + item.file, item.category || 'default', item.file);
           } else {
             setStatus('Ignorerar manifest-entry: ' + JSON.stringify(item), true);
           }
@@ -182,7 +181,7 @@
       const repo = document.getElementById('ghRepo').value.trim();
       const branch = document.getElementById('ghBranch').value.trim();
       if (!owner || !repo) { setStatus('Fyll i owner och repo', true); return; }
-      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/klm` + (branch ? `?ref=${encodeURIComponent(branch)}` : '');
+      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/kml` + (branch ? `?ref=${encodeURIComponent(branch)}` : '');
       setStatus('Kontaktar GitHub API...');
       try {
         const res = await fetch(apiUrl);
@@ -203,7 +202,7 @@
 
     (async () => {
       try {
-        const resp = await fetch('./klm/list.json');
+        const resp = await fetch('./kml/list.json');
         if (resp.ok) document.getElementById('loadManifestBtn').click();
       } catch(e){}
     })();
