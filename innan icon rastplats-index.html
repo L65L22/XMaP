@@ -32,6 +32,27 @@
     }
     .fab:active { transform: translateX(-50%) translateY(1px); }
 
+    /* share-knapp: placera uppe till höger */
+    .share-btn {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: #e53935;
+      color: white;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.24);
+      z-index: 1500;
+      font-size: 18px;
+      border: none;
+      padding: 0;
+    }
+    .share-btn:active { transform: translateY(1px); }
+
     /* Panel (bottom sheet) */
     .sheet {
       position: fixed;
@@ -66,6 +87,7 @@
       .fab { width:68px; height:68px; border-radius:34px; font-size:26px; bottom:28px; }
       .sheet { bottom:106px; left: 12px; right: 12px; padding:12px; border-radius:14px; }
       .small-btn { padding:8px 10px; font-size:0.95rem; }
+      .share-btn { width:54px; height:54px; border-radius:10px; font-size:20px; top:16px; right:16px; }
     }
     @media (min-device-width: 360px) and (min-resolution: 2dppx) {
       .fab { width:72px; height:72px; border-radius:36px; font-size:28px; bottom:30px; }
@@ -81,6 +103,8 @@
 
   <div class="status" id="status" aria-live="polite" style="display:none;"></div>
 
+  <!-- share-knapp uppe till höger -->
+  <button id="sharePosBtn" class="share-btn" title="Dela min plats">📍</button>
   <button id="layersBtn" class="fab" aria-label="Layers">☰</button>
 
   <div id="layersSheet" class="sheet" role="dialog" aria-hidden="true">
@@ -111,9 +135,7 @@
       return base.replace(/\.kml$/i, '');
     }
 
-    function normalizeCategoryKey(name) { return String(name || '').trim().toLowerCase(); }
-
-    // Uppdaterar style rekursivt för ett layer (GeoJSON, CircleMarker eller Group)
+    // Rekursiv style-uppdaterare (används för ev. framtida ändringar)
     function updateLayerStyle(layer, color) {
       try {
         if (!layer) return;
@@ -138,6 +160,7 @@
     const layersBtn = document.getElementById('layersBtn');
     const layersSheet = document.getElementById('layersSheet');
     const layersListEl = document.getElementById('layersList');
+    const sharePosBtn = document.getElementById('sharePosBtn');
 
     function showStatus(msg, timeout = 3000) {
       if (!msg) { statusEl.style.display = 'none'; return; }
@@ -358,7 +381,76 @@
     }
 
     // ---------------------------
-    // Init: auto KML load + auto-start geolocation
+    // SHARE CURRENT LOCATION: one-shot marker + link
+    // ---------------------------
+    let _shareMarker = null;
+
+    function createShareUrl(lat, lng, zoom) {
+      const base = window.location.origin + window.location.pathname;
+      return `${base}?loc=${lat.toFixed(6)},${lng.toFixed(6)}&z=${zoom}`;
+    }
+
+    function placeShareMarker(lat, lng) {
+      if (!_shareMarker) {
+        _shareMarker = L.circleMarker([lat, lng], {
+          radius:8, color:'#fff', weight:2, fillColor:'#ff5722', fillOpacity:0.95
+        }).addTo(map);
+      } else {
+        _shareMarker.setLatLng([lat, lng]);
+      }
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showStatus('Länk kopierad till urklipp', 3500);
+      } catch (e) {
+        showStatus('Kunde inte kopiera — här är länken: ' + text, 6000);
+        console.warn('Clipboard error', e);
+      }
+    }
+
+    function markAndShareCurrentLocation() {
+      if (!('geolocation' in navigator)) { showStatus('Geolocation stöds inte', 4000); return; }
+      showStatus('Hämtar din position…', 4000);
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const zoom = map.getZoom() || 14;
+
+        placeShareMarker(lat, lng);
+        map.setView([lat, lng], Math.max(zoom, 14));
+
+        const url = createShareUrl(lat, lng, map.getZoom());
+        await copyToClipboard(url);
+        console.log('Dela denna länk:', url);
+      }, err => {
+        showStatus('Kunde inte hämta position: ' + (err.message || err.code), 5000);
+        console.warn('Geolocation error', err);
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
+
+    // Restore marker from URL (?loc=lat,lng&z=zoom)
+    function restoreFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const loc = params.get('loc');
+        const z = params.get('z');
+        if (loc) {
+          const [latStr, lngStr] = loc.split(',');
+          const lat = parseFloat(latStr);
+          const lng = parseFloat(lngStr);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            placeShareMarker(lat, lng);
+            const zoom = z ? parseInt(z,10) : map.getZoom();
+            map.setView([lat, lng], isNaN(zoom) ? 14 : zoom);
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // ---------------------------
+    // Init: auto KML load + auto-start geolocation + URL-restore
     // ---------------------------
     (async () => {
       // attempt auto GitHub load
@@ -379,6 +471,9 @@
         }
       }
 
+      // Restore share marker if URL contains loc
+      restoreFromUrl();
+
       // Start geolocation tracking automatically (requires HTTPS and user permission)
       try {
         startLocationTracking();
@@ -394,6 +489,9 @@
       if (open) renderLayersList();
     });
 
+    // Share button handler
+    sharePosBtn.addEventListener('click', markAndShareCurrentLocation);
+
     // Close sheet on map click
     map.on('click', () => {
       if (layersSheet.classList.contains('open')) {
@@ -407,7 +505,8 @@
       load: (url, name) => loadKml(url, null, name),
       listFiles: () => mapsMeta.map(m => ({ name: filenameWithoutExt(m.name || m.url), url: m.url, count: m.featureCount })),
       startLocation: startLocationTracking,
-      stopLocation: stopLocationTracking
+      stopLocation: stopLocationTracking,
+      shareNow: markAndShareCurrentLocation
     };
   </script>
 </body>

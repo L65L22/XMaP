@@ -151,6 +151,32 @@
       } catch (e) { console.warn('Could not update style for a layer', e); }
     }
 
+    // --- RASTIKON OCH MATCHER ---
+    // Återanvändbar ikon för rastplats
+    const rastIcon = L.icon({
+      iconUrl: './Icon/rastplats.svg',
+      iconSize: [28, 28],      // justera efter behov
+      iconAnchor: [14, 28],    // botten mitt
+      popupAnchor: [0, -28]
+    });
+
+    // Enkel heuristik: kolla vanliga property-fält för substring "rastplats"
+    function isRastplatsFeature(feature) {
+      if (!feature || !feature.properties) return false;
+      const p = feature.properties;
+      const candidates = [
+        p.name,
+        p.Name,
+        p.title,
+        p.type,
+        p.category,
+        p.categoryName,
+        p.description
+      ];
+      return candidates.some(v => typeof v === 'string' && v.toLowerCase().includes('rastplats'));
+    }
+    // --- slut RASTIKON ---
+
     const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
@@ -228,8 +254,7 @@
       return await res.text();
     }
 
-    // Laddar KML och använder alltid DEFAULT_POINT_COLOR för styling.
-    // Kategorier ignoreras; alla filer hanteras individuellt.
+    // Laddar KML och använder rastIcon för "Rastplats"-features, annars cirkelmarkör.
     async function loadKml(url, categoryName, displayName) {
       showStatus('Laddar ' + (displayName || url), 2500);
       try {
@@ -255,7 +280,13 @@
             if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
             lyr.bindPopup(html);
           },
-          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor: color, color: '#fff', weight:1, fillOpacity:0.95 })
+          pointToLayer: (feature, latlng) => {
+            // Om feature matchar som rastplats -> ikon, annars circleMarker
+            if (isRastplatsFeature(feature)) {
+              return L.marker(latlng, { icon: rastIcon });
+            }
+            return L.circleMarker(latlng, { radius:6, fillColor: color, color: '#fff', weight:1, fillOpacity:0.95 });
+          }
         });
 
         // Lägg lagret direkt på kartan
