@@ -2,13 +2,13 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Aggregator (debug): flera My Maps (KMZ/KML)</title>
+  <title>Aggregator (KML only)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { margin:0; font-family: Arial, Helvetica, sans-serif; }
-    #map { position: absolute; top:160px; bottom:0; left:0; right:0; }
-    #control { position: absolute; left:10px; top:10px; right:10px; height:140px; background: rgba(255,255,255,0.97); padding:8px; border-radius:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; z-index:1000; }
+    #map { position: absolute; top:120px; bottom:0; left:0; right:0; }
+    #control { position: absolute; left:10px; top:10px; right:10px; height:100px; background: rgba(255,255,255,0.96); padding:8px; border-radius:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; z-index:1000; }
     input[type=text] { padding:6px; }
     .grow { flex:1; min-width:200px; }
     button { padding:6px 10px; }
@@ -16,21 +16,19 @@
     .catItem { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
     .small { font-size:0.9em; color:#444; }
     #debug { position:absolute; left:10px; bottom:10px; background:rgba(255,255,255,0.95); padding:8px; border-radius:6px; max-height:220px; overflow:auto; width:420px; font-size:0.85em; z-index:1000; }
-    .debug-row { margin-bottom:6px; border-bottom:1px dashed #ddd; padding-bottom:6px; }
-    .error { color:#b00; font-weight:600; }
   </style>
 </head>
 <body>
   <div id="control">
     <div style="display:flex;gap:8px;align-items:center;flex:1;">
-      <input id="kmlUrl" class="grow" type="text" placeholder="Manuell raw URL till .kml eller .kmz (valfritt)" />
+      <input id="kmlUrl" class="grow" type="text" placeholder="Manuell raw URL till .kml (valfritt)" />
       <input id="category" type="text" placeholder="Kategori (t.ex. 'Vandringsleder')" style="width:160px" />
       <button id="addBtn">Lägg till</button>
     </div>
 
     <div style="display:flex;gap:8px;align-items:center;width:100%;">
-      <button id="loadManifestBtn">Läs kmz/list.json (lokalt)</button>
-      <span class="small">— Eller hämta direkt från GitHub repo:</span>
+      <button id="loadManifestBtn">Läs klm/list.json</button>
+      <span class="small">— Eller hämta från GitHub repo:</span>
       <input id="ghOwner" type="text" placeholder="owner" style="width:100px" />
       <input id="ghRepo" type="text" placeholder="repo" style="width:120px" />
       <input id="ghBranch" type="text" placeholder="branch (valfritt)" style="width:100px" />
@@ -44,63 +42,34 @@
 
   <div id="layersList"></div>
   <div id="map"></div>
-  <div id="debug"><strong>Debug log</strong><div id="debugContent"></div></div>
+  <div id="debug"><strong>Debug</strong><div id="debugContent"></div></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Lokal togeojson -->
+  <!-- Lokal togeojson (behöver finnas: vendor/togeojson.min.js) -->
   <script src="./vendor/togeojson.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-
-  <script>
-    // Snabb kontroll så att toGeoJSON finns; annars visa tydligt fel i debug
-    (function(){
-      function showMissingLib() {
-        const dbg = document.getElementById('debugContent');
-        if (dbg) {
-          const d = document.createElement('div');
-          d.className = 'debug-row error';
-          d.textContent = 'FEL: toGeoJSON biblioteket laddades inte (ingen conversion möjlig). Kontrollera att vendor/togeojson.min.js finns och serveras korrekt.';
-          dbg.prepend(d);
-        }
-        console.error('toGeoJSON saknas: KML/KMZ-konvertering kommer att misslyckas.');
-      }
-      if (typeof toGeoJSON === 'undefined') {
-        setTimeout(()=>{ if (typeof toGeoJSON === 'undefined') showMissingLib(); }, 500);
-      }
-    })();
-  </script>
-
+  <!-- JSZip tas bort eftersom vi inte hanterar KMZ längre -->
   <script>
     const map = L.map('map').setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
-    const categories = {}; // name -> L.LayerGroup
+    const categories = {};
     const mapsMeta = [];
-
     const statusEl = document.getElementById('status');
     const layersListEl = document.getElementById('layersList');
     const debugEl = document.getElementById('debugContent');
 
-    function setStatus(s, isError=false) {
+    function setStatus(s, err=false) {
       statusEl.textContent = s || '';
-      if (isError) console.error(s); else console.log(s);
-      appendDebug(s, isError);
-    }
-
-    function appendDebug(txt, isError=false) {
       const d = document.createElement('div');
-      d.className = 'debug-row';
-      if (isError) d.innerHTML = '<span class="error">' + escapeHtml(txt) + '</span>'; else d.textContent = txt;
+      d.textContent = s;
+      if (err) d.style.color = '#b00';
       debugEl.prepend(d);
+      if (err) console.error(s); else console.log(s);
     }
-
-    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     function ensureCategory(name) {
       if (!name) name = 'default';
-      if (!categories[name]) {
-        categories[name] = L.layerGroup().addTo(map);
-      }
+      if (!categories[name]) categories[name] = L.layerGroup().addTo(map);
       return categories[name];
     }
 
@@ -112,10 +81,9 @@
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.checked = map.hasLayer(categories[name]);
-        cb.onchange = () => { if (cb.checked) map.addLayer(categories[name]); else map.removeLayer(categories[name]); };
+        cb.onchange = () => cb.checked ? map.addLayer(categories[name]) : map.removeLayer(categories[name]);
         const label = document.createElement('span');
-        const count = categories[name].getLayers().length;
-        label.textContent = name + ' (' + count + ')';
+        label.textContent = name + ' (' + categories[name].getLayers().length + ')';
         div.appendChild(cb);
         div.appendChild(label);
         layersListEl.appendChild(div);
@@ -126,7 +94,7 @@
       metaDiv.innerHTML = '<strong>Inlästa filer</strong><br/>';
       mapsMeta.forEach(m => {
         const r = document.createElement('div');
-        r.textContent = m.name + ' → kategori: ' + m.category + ' | features: ' + (m.featureCount ?? '?');
+        r.textContent = m.name + ' → ' + m.category + ' | features: ' + (m.featureCount ?? '?');
         metaDiv.appendChild(r);
       });
       layersListEl.appendChild(metaDiv);
@@ -138,47 +106,18 @@
       return await res.text();
     }
 
-    async function fetchArrayBuffer(url) {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status + ' för ' + url);
-      return await res.arrayBuffer();
-    }
-
-    async function loadKmlOrKmz(url, categoryName, displayName) {
-      setStatus('Försöker ladda: ' + url);
+    async function loadKml(url, categoryName, displayName) {
+      setStatus('Laddar KML: ' + url);
       try {
-        if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — kan inte konvertera KML/KMZ');
+        if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas, lägg vendor/togeojson.min.js i repo');
 
-        let kmlText = null;
-        let internalFiles = [];
-        if (url.toLowerCase().endsWith('.kmz')) {
-          setStatus('Hämtar KMZ (binär): ' + url);
-          const ab = await fetchArrayBuffer(url);
-          setStatus('KMZ hämtad, storlek: ' + ab.byteLength + ' bytes');
-          const zip = await JSZip.loadAsync(ab);
-          internalFiles = Object.keys(zip.files);
-          setStatus('KMZ interna filer: ' + internalFiles.join(', '));
-          const kmlFileName = internalFiles.find(n => n.toLowerCase().endsWith('.kml'));
-          if (!kmlFileName) {
-            const msg = 'Ingen .kml hittades i KMZ: ' + url + ' (interna filer: ' + internalFiles.join(', ') + ')';
-            setStatus(msg, true);
-            return;
-          }
-          setStatus('Läser intern KML: ' + kmlFileName);
-          kmlText = await zip.files[kmlFileName].async('text');
-        } else {
-          setStatus('Hämtar KML: ' + url);
-          kmlText = await fetchText(url);
-        }
-
+        const kmlText = await fetchText(url);
         const parser = new DOMParser();
         const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
         const geojson = toGeoJSON.kml(kmlDoc);
 
         const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
         setStatus('Konverterat till GeoJSON, features: ' + featureCount);
-        appendDebug('GeoJSON features för ' + displayName + ': ' + featureCount);
-
         if (Array.isArray(geojson.features)) {
           geojson.features.forEach(f => {
             if (!f.properties) f.properties = {};
@@ -193,28 +132,15 @@
             if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
             lyr.bindPopup(html);
           },
-          pointToLayer: (feature, latlng) => {
-            return L.circleMarker(latlng, { radius:6, fillColor:'#3388ff', color:'#fff', weight:1, fillOpacity:0.9 });
-          }
+          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor:'#3388ff', color:'#fff', weight:1, fillOpacity:0.9 })
         });
 
         const cat = ensureCategory(categoryName || 'default');
         layer.addTo(cat);
-
-        mapsMeta.push({ url, category: categoryName || 'default', name: displayName || url, layer, featureCount, internalFiles });
+        mapsMeta.push({ url, category: categoryName || 'default', name: displayName || url, layer, featureCount });
         renderLayersList();
-
         setStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)');
-        try {
-          const b = layer.getBounds && layer.getBounds();
-          if (b && typeof b.isValid === 'function' ? b.isValid() : (b && b._southWest)) {
-            map.fitBounds(b, { maxZoom: 14 });
-          } else {
-            setStatus('Ingen giltig bounding box för filen (kanske inga features eller endast punkter utan bounds).');
-          }
-        } catch (e) {
-          console.warn('fitBounds misslyckades', e);
-        }
+        try { const b = layer.getBounds && layer.getBounds(); if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 }); } catch(e){}
       } catch (err) {
         console.error(err);
         setStatus('Fel: ' + err.message, true);
@@ -224,24 +150,24 @@
     document.getElementById('addBtn').addEventListener('click', () => {
       const url = document.getElementById('kmlUrl').value.trim();
       const cat = document.getElementById('category').value.trim() || 'default';
-      if (!url) { setStatus('Ange en URL till .kml eller .kmz', true); return; }
-      loadKmlOrKmz(url, cat, url);
+      if (!url) { setStatus('Ange en URL till .kml', true); return; }
+      loadKml(url, cat, url);
     });
 
     document.getElementById('loadManifestBtn').addEventListener('click', async () => {
-      setStatus('Hämtar ./kmz/list.json ...');
+      setStatus('Hämtar ./klm/list.json ...');
       try {
-        const txt = await fetchText('./kmz/list.json');
+        const txt = await fetchText('./klm/list.json');
         setStatus('Manifest hämtad, längd: ' + txt.length + ' tecken');
         const list = JSON.parse(txt);
         if (!Array.isArray(list)) throw new Error('list.json måste vara en array');
         for (const item of list) {
           if (typeof item === 'string') {
-            await loadKmlOrKmz('./kmz/' + item, 'default', item);
+            await loadKml('./klm/' + item, 'default', item);
           } else if (item && item.file) {
-            await loadKmlOrKmz('./kmz/' + item.file, item.category || 'default', item.file);
+            await loadKml('./klm/' + item.file, item.category || 'default', item.file);
           } else {
-            appendDebug('Ignorerar manifest-entry (okänt format): ' + JSON.stringify(item), true);
+            setStatus('Ignorerar manifest-entry: ' + JSON.stringify(item), true);
           }
         }
         setStatus('Manifest klar.');
@@ -256,16 +182,16 @@
       const repo = document.getElementById('ghRepo').value.trim();
       const branch = document.getElementById('ghBranch').value.trim();
       if (!owner || !repo) { setStatus('Fyll i owner och repo', true); return; }
-      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/kmz` + (branch ? `?ref=${encodeURIComponent(branch)}` : '');
-      setStatus('Kontaktar GitHub API: ' + apiUrl);
+      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/klm` + (branch ? `?ref=${encodeURIComponent(branch)}` : '');
+      setStatus('Kontaktar GitHub API...');
       try {
         const res = await fetch(apiUrl);
         if (!res.ok) throw new Error('GitHub API HTTP ' + res.status);
         const entries = await res.json();
         if (!Array.isArray(entries)) throw new Error('Innehåll ej en lista');
         for (const e of entries) {
-          if (e.type === 'file' && (e.name.toLowerCase().endsWith('.kmz') || e.name.toLowerCase().endsWith('.kml'))) {
-            await loadKmlOrKmz(e.download_url, 'default', e.name);
+          if (e.type === 'file' && e.name.toLowerCase().endsWith('.kml')) {
+            await loadKml(e.download_url, 'default', e.name);
           }
         }
         setStatus('Filer från GitHub laddade.');
@@ -277,15 +203,9 @@
 
     (async () => {
       try {
-        const resp = await fetch('./kmz/list.json');
-        if (resp.ok) {
-          document.getElementById('loadManifestBtn').click();
-        } else {
-          appendDebug('Ingen lokal manifest funnen (HTTP ' + resp.status + ')');
-        }
-      } catch(e){
-        appendDebug('Tyst fail vid försök läsa manifest: ' + e.message);
-      }
+        const resp = await fetch('./klm/list.json');
+        if (resp.ok) document.getElementById('loadManifestBtn').click();
+      } catch(e){}
     })();
   </script>
 </body>
