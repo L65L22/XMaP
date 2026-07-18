@@ -6,19 +6,49 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    html,body { height:100%; margin:0; font-family: -apple-system, Roboto, "Segoe UI", Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-    #map { position:fixed; inset:0; }
+    /* Grundlayout */
+    html,body { height:100%; margin:0; font-family: -apple-system, Roboto, "Segoe UI", Arial, sans-serif; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+    #map { position:fixed; inset:0; width:100vw; height:100vh; }
+
+    /* Fab (menyknapp) - centrerad längst ner */
     .fab {
-      position: fixed; right: 14px; bottom: 18px; width: 56px; height: 56px; border-radius: 28px;
-      background: #1976d2; color: white; display:flex; align-items:center; justify-content:center;
-      box-shadow: 0 6px 14px rgba(0,0,0,0.24); z-index: 1400; font-size: 22px; touch-action: manipulation;
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%); /* centrerar horisontellt */
+      bottom: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background: #1976d2;
+      color: white;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.24);
+      z-index: 1400;
+      font-size: 22px;
+      touch-action: manipulation;
+      border: none;
     }
-    .fab:active { transform: translateY(1px); }
+    .fab:active { transform: translateX(-50%) translateY(1px); }
+
+    /* Panel (bottom sheet) */
     .sheet {
-      position: fixed; left: 8px; right: 8px; bottom: 84px; max-height: 56%;
-      background: rgba(255,255,255,0.98); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-      padding: 10px; overflow:auto; z-index: 1390; transform: translateY(20px);
-      transition: transform 200ms ease, opacity 200ms ease; opacity: 0; pointer-events: none;
+      position: fixed;
+      left: 8px;
+      right: 8px;
+      bottom: 96px; /* lämnar plats för centered fab */
+      max-height: 56%;
+      background: rgba(255,255,255,0.98);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      padding: 10px;
+      overflow:auto;
+      z-index: 1390;
+      transform: translateY(20px);
+      transition: transform 200ms ease, opacity 200ms ease;
+      opacity: 0;
+      pointer-events: none;
     }
     .sheet.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
     .sheet h3 { margin:0 0 8px 0; font-size:1rem; }
@@ -32,9 +62,19 @@
       text-overflow: ellipsis; white-space: nowrap;
     }
     .small-btn { background: #eee; border: none; padding:6px 8px; border-radius:6px; font-size:0.85rem; }
+
+    /* Anpassningar för större/high-DPI skärmar */
+    @media (min-width: 1024px) and (min-height: 600px) {
+      .fab { width:68px; height:68px; border-radius:34px; font-size:26px; bottom:28px; }
+      .sheet { bottom:106px; left: 12px; right: 12px; padding:12px; border-radius:14px; }
+      .small-btn { padding:8px 10px; font-size:0.95rem; }
+    }
+    @media (min-device-width: 360px) and (min-resolution: 2dppx) {
+      .fab { width:72px; height:72px; border-radius:36px; font-size:28px; bottom:30px; }
+    }
     @media (min-width: 780px) {
-      .sheet { right: 12px; left: auto; bottom: 12px; width: 360px; max-height: 60%; border-radius:8px; }
-      .fab { right: 380px; bottom: 18px; }
+      .sheet { right: 12px; left: auto; bottom: 12px; width: 420px; max-height: 60%; border-radius:8px; }
+      .fab { left: 50%; transform: translateX(-50%); bottom: 20px; }
     }
   </style>
 </head>
@@ -62,14 +102,34 @@
       owner: '',
       repo: '',
       branch: 'main',
-      // token: '' // ej rekommenderat i klientkod
     };
+
+    // Alla punkter använder denna fasta standardfärg
+    const DEFAULT_POINT_COLOR = '#1976d2';
+
+    function normalizeCategoryKey(name) { return String(name || '').trim().toLowerCase(); }
+
+    // Uppdaterar style rekursivt för ett layer (GeoJSON, CircleMarker eller Group)
+    function updateLayerStyle(layer, color) {
+      try {
+        if (!layer) return;
+        if (typeof layer.setStyle === 'function') {
+          layer.setStyle({ color: color, fillColor: color });
+        } else if (layer instanceof L.CircleMarker) {
+          layer.setStyle({ color: color, fillColor: color });
+        } else if (typeof layer.eachLayer === 'function') {
+          layer.eachLayer(function (l) { updateLayerStyle(l, color); });
+        } else if (layer.getLayers) {
+          layer.getLayers().forEach(function (l) { updateLayerStyle(l, color); });
+        }
+      } catch (e) { console.warn('Could not update style for a layer', e); }
+    }
 
     const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
-    const categories = {};      // name -> L.LayerGroup
-    const mapsMeta = [];        // lista med { url, name, category, layer, featureCount }
+    const categories = {};
+    const mapsMeta = [];
 
     const statusEl = document.getElementById('status');
     const layersBtn = document.getElementById('layersBtn');
@@ -92,51 +152,9 @@
       return categories[name];
     }
 
-    function toggleCategory(name, visible) {
-      const grp = categories[name];
-      if (!grp) return;
-      if (visible) map.addLayer(grp); else map.removeLayer(grp);
-      // update file checkboxes to reflect their actual layers
-      renderLayersList(); 
-    }
-
-    function toggleFileLayer(meta, visible) {
-      if (!meta || !meta.layer) return;
-      if (visible) map.addLayer(meta.layer); else map.removeLayer(meta.layer);
-      // update category checkbox counts/checked state
-      renderLayersList();
-    }
-
+    // renderLayersList: visar endast "Inlästa filer" (ingen kategori-sektion)
     function renderLayersList() {
       layersListEl.innerHTML = '';
-
-      // Categories section (each category toggles its LayerGroup)
-      const catNames = Object.keys(categories);
-      if (catNames.length) {
-        const catHeader = document.createElement('div');
-        catHeader.style.padding = '6px 4px';
-        catHeader.innerHTML = '<strong>Kategorier</strong>';
-        layersListEl.appendChild(catHeader);
-
-        catNames.forEach(name => {
-          const div = document.createElement('div');
-          div.className = 'layer-row';
-          const cb = document.createElement('input');
-          cb.type = 'checkbox';
-          cb.checked = map.hasLayer(categories[name]);
-          cb.addEventListener('change', () => toggleCategory(name, cb.checked));
-          const label = document.createElement('label');
-          label.textContent = name + ' (' + categories[name].getLayers().length + ')';
-          div.appendChild(cb);
-          div.appendChild(label);
-          layersListEl.appendChild(div);
-        });
-      }
-
-      // Divider
-      const divider = document.createElement('div');
-      divider.style.height = '8px';
-      layersListEl.appendChild(divider);
 
       // Files section: list every loaded file with per-file checkbox
       const filesHeader = document.createElement('div');
@@ -152,33 +170,27 @@
         none.textContent = 'Inga filer inlästa.';
         layersListEl.appendChild(none);
       } else {
-        mapsMeta.forEach((m, idx) => {
+        mapsMeta.forEach((m) => {
           const row = document.createElement('div');
           row.className = 'file-row';
+
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.checked = map.hasLayer(m.layer);
-          cb.addEventListener('change', () => toggleFileLayer(m, cb.checked));
+          cb.addEventListener('change', () => { if (cb.checked) map.addLayer(m.layer); else map.removeLayer(m.layer); renderLayersList(); });
+
           const label = document.createElement('label');
           label.textContent = (m.name || m.url) + ' — ' + m.category + ' (' + (m.featureCount ?? '?') + ')';
-          // small actions (zoom to layer)
-          const zoomBtn = document.createElement('button');
-          zoomBtn.className = 'small-btn';
-          zoomBtn.textContent = 'Zoom';
-          zoomBtn.addEventListener('click', () => {
-            try {
-              const b = m.layer.getBounds && m.layer.getBounds();
-              if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 });
-            } catch (e) {}
-          });
+
+          // note: Zoom and Solo buttons removed as requested
+
           row.appendChild(cb);
           row.appendChild(label);
-          row.appendChild(zoomBtn);
           layersListEl.appendChild(row);
         });
       }
 
-      // Optional: show a small control row to show/hide all files
+      // Show/Hide all controls
       const ctrlRow = document.createElement('div');
       ctrlRow.style.display = 'flex';
       ctrlRow.style.gap = '8px';
@@ -202,59 +214,56 @@
       return await res.text();
     }
 
-    async function loadKml(url, categoryName, displayName) {
-  showStatus('Laddar ' + (displayName || url), 2500);
-  try {
-    if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — lägg vendor/togeojson.min.js i repo');
-
-    const txt = await fetchText(url);
-    const parser = new DOMParser();
-    const kmlDoc = parser.parseFromString(txt, 'text/xml');
-    const geojson = toGeoJSON.kml(kmlDoc);
-
-    const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
-    if (Array.isArray(geojson.features)) {
-      geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
+    function inferCategoryFromFilename(filename) {
+      if (!filename) return 'default';
+      const f = filename.toLowerCase();
+      if (f.includes('blandat') || f.includes('bland')) return 'Blandat';
+      return 'default';
     }
 
-    // Bestäm punktfärg baserat på kategori (case-insensitive)
-    const pointColor = (categoryName && String(categoryName).toLowerCase() === 'blandat') ? '#eee111' : '#1976d2';
+    // Laddar KML och använder alltid DEFAULT_POINT_COLOR för styling
+    async function loadKml(url, categoryName, displayName) {
+      showStatus('Laddar ' + (displayName || url), 2500);
+      try {
+        if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — lägg vendor/togeojson.min.js i repo');
+        const txt = await fetchText(url);
+        const parser = new DOMParser();
+        const kmlDoc = parser.parseFromString(txt, 'text/xml');
+        const geojson = toGeoJSON.kml(kmlDoc);
+        const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
+        if (Array.isArray(geojson.features)) geojson.features.forEach(f => { if (!f.properties) f.properties = {}; f.properties._sourceMap = displayName || url; });
 
-    const layer = L.geoJSON(geojson, {
-      onEachFeature: (feature, lyr) => {
-        let html = '<strong>' + (feature.properties?.name || '') + '</strong><br/>';
-        if (feature.properties?.description) html += feature.properties.description;
-        if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
-        lyr.bindPopup(html);
-      },
-      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-        radius: 6,
-        fillColor: pointColor,
-        color: '#fff',
-        weight: 1,
-        fillOpacity: 0.95
-      })
-    });
+        const catName = categoryName || inferCategoryFromFilename(displayName || url) || 'default';
+        ensureCategory(catName);
+        const color = DEFAULT_POINT_COLOR;
 
-    const cat = ensureCategory(categoryName || 'default');
-    layer.addTo(cat);
+        const layer = L.geoJSON(geojson, {
+          style: function(feature) { return { color: color, fillColor: color }; },
+          onEachFeature: (feature, lyr) => {
+            let html = '<strong>' + (feature.properties?.name || '') + '</strong><br/>';
+            if (feature.properties?.description) html += feature.properties.description;
+            if (feature.properties?._sourceMap) html += '<hr/><em>' + feature.properties._sourceMap + '</em>';
+            lyr.bindPopup(html);
+          },
+          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius:6, fillColor: color, color: '#fff', weight:1, fillOpacity:0.95 })
+        });
 
-    const meta = { url, category: categoryName || 'default', name: displayName || url, layer, featureCount };
-    mapsMeta.push(meta);
-    renderLayersList();
-    showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
+        const cat = ensureCategory(catName);
+        layer.addTo(cat);
 
-    try {
-      const b = layer.getBounds && layer.getBounds();
-      if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 });
-    } catch (e) {}
-  } catch (err) {
-    console.error(err);
-    showStatus('Fel: ' + err.message, 5000);
-  }
-}
+        const meta = { url, category: catName, name: displayName || url, layer, featureCount, categoryKey: normalizeCategoryKey(catName) };
+        mapsMeta.push(meta);
 
-    // GitHub: hämta listning av /kml i repo och ladda alla .kml (download_url)
+        renderLayersList();
+        showStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)', 3000);
+
+        try { const b = layer.getBounds && layer.getBounds(); if (b && (b.isValid ? b.isValid() : b._southWest)) map.fitBounds(b, { maxZoom: 14 }); } catch (e) {}
+      } catch (err) {
+        console.error(err);
+        showStatus('Fel: ' + err.message, 5000);
+      }
+    }
+
     async function loadAllKmlFromGitHub(owner, repo, branch, token) {
       if (!owner || !repo) throw new Error('owner eller repo saknas');
       const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/kml` + (branch ? `?ref=${encodeURIComponent(branch)}` : '');
@@ -262,26 +271,15 @@
       const headers = {};
       if (token) headers['Authorization'] = 'token ' + token;
       let res;
-      try {
-        res = await fetch(apiUrl, { headers });
-      } catch (e) {
-        throw new Error('Nätverksfel mot GitHub API: ' + e.message);
-      }
-      if (!res.ok) {
-        if (res.status === 404) throw new Error('Katalogen /kml hittades inte i repo');
-        throw new Error('GitHub API HTTP ' + res.status);
-      }
+      try { res = await fetch(apiUrl, { headers }); } catch (e) { throw new Error('Nätverksfel mot GitHub API: ' + e.message); }
+      if (!res.ok) { if (res.status === 404) throw new Error('Katalogen /kml hittades inte i repo'); throw new Error('GitHub API HTTP ' + res.status); }
       const entries = await res.json();
       if (!Array.isArray(entries)) throw new Error('GitHub svarade med oväntat format');
       const kmlFiles = entries.filter(e => e.type === 'file' && e.name.toLowerCase().endsWith('.kml'));
       if (!kmlFiles.length) { showStatus('Inga .kml i /kml', 5000); return; }
       showStatus('Laddar ' + kmlFiles.length + ' KML-filer...', 4000);
       for (const f of kmlFiles) {
-        try {
-          await loadKml(f.download_url, 'default', f.name);
-        } catch (err) {
-          console.warn('Misslyckades ladda', f.name, err);
-        }
+        try { const inferredCategory = inferCategoryFromFilename(f.name); await loadKml(f.download_url, inferredCategory, f.name); } catch (err) { console.warn('Misslyckades ladda', f.name, err); }
       }
       showStatus('Alla tillgängliga KML-filer är inlästa.', 3000);
     }
@@ -299,35 +297,18 @@
       } catch (e) { return null; }
     }
 
-    // Auto-load flow
     (async () => {
       if (!githubAuto.enabled) { showStatus('Automatisk GitHub-laddning inaktiverad'); return; }
-
       let owner = githubAuto.owner || null;
       let repo = githubAuto.repo || null;
       const branch = githubAuto.branch || undefined;
       const token = githubAuto.token || undefined;
-
       if (!owner || !repo) {
         const det = detectOwnerRepoFromLocation();
-        if (det) {
-          owner = owner || det.owner;
-          repo = repo || det.repo;
-          console.log('Autodetekterat owner/repo:', owner, repo);
-        }
+        if (det) { owner = owner || det.owner; repo = repo || det.repo; console.log('Autodetekterat owner/repo:', owner, repo); }
       }
-
-      if (!owner || !repo) {
-        showStatus('Automatisk GitHub-laddning: owner/repo ej angivet och kunde ej upptäckas.', 8000);
-        return;
-      }
-
-      try {
-        await loadAllKmlFromGitHub(owner, repo, branch, token);
-      } catch (err) {
-        console.error(err);
-        showStatus('GitHub-auto fel: ' + err.message, 8000);
-      }
+      if (!owner || !repo) { showStatus('Automatisk GitHub-laddning: owner/repo ej angivet och kunde ej upptäckas.', 8000); return; }
+      try { await loadAllKmlFromGitHub(owner, repo, branch, token); } catch (err) { console.error(err); showStatus('GitHub-auto fel: ' + err.message, 8000); }
     })();
 
     // Layers button toggles the sheet
@@ -345,7 +326,7 @@
       }
     });
 
-    // Expose lightweight API for programmatic adding
+    // API for console use
     window.AppKml = {
       load: (url, category, name) => loadKml(url, category, name),
       listLayers: () => Object.keys(categories),

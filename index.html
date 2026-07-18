@@ -182,8 +182,6 @@
           const label = document.createElement('label');
           label.textContent = (m.name || m.url) + ' — ' + m.category + ' (' + (m.featureCount ?? '?') + ')';
 
-          // note: Zoom and Solo buttons removed as requested
-
           row.appendChild(cb);
           row.appendChild(label);
           layersListEl.appendChild(row);
@@ -297,18 +295,103 @@
       } catch (e) { return null; }
     }
 
-    (async () => {
-      if (!githubAuto.enabled) { showStatus('Automatisk GitHub-laddning inaktiverad'); return; }
-      let owner = githubAuto.owner || null;
-      let repo = githubAuto.repo || null;
-      const branch = githubAuto.branch || undefined;
-      const token = githubAuto.token || undefined;
-      if (!owner || !repo) {
-        const det = detectOwnerRepoFromLocation();
-        if (det) { owner = owner || det.owner; repo = repo || det.repo; console.log('Autodetekterat owner/repo:', owner, repo); }
+    // ---------------------------
+    // GEOLOCATION: auto-start
+    // ---------------------------
+    let _watchId = null;
+    let _userMarker = null;
+    let _accuracyCircle = null;
+    let _firstFix = true;
+
+    function startLocationTracking(options = { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }) {
+      if (!('geolocation' in navigator)) {
+        showStatus('Geolocation stöds inte i denna webbläsare', 5000);
+        return;
       }
-      if (!owner || !repo) { showStatus('Automatisk GitHub-laddning: owner/repo ej angivet och kunde ej upptäckas.', 8000); return; }
-      try { await loadAllKmlFromGitHub(owner, repo, branch, token); } catch (err) { console.error(err); showStatus('GitHub-auto fel: ' + err.message, 8000); }
+      if (_watchId !== null) return; // redan aktiv
+
+      _firstFix = true;
+      _watchId = navigator.geolocation.watchPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy || 0;
+
+        if (!_userMarker) {
+          _userMarker = L.circleMarker([lat, lng], {
+            radius: 8,
+            color: '#ffffff',
+            weight: 2,
+            fillColor: '#ff0000', // röd punkt
+            fillOpacity: 0.95,
+            pane: 'markerPane'
+          }).addTo(map);
+        } else {
+          _userMarker.setLatLng([lat, lng]);
+        }
+
+        if (!_accuracyCircle) {
+          _accuracyCircle = L.circle([lat, lng], {
+            radius: acc,
+            color: '#ff0000',
+            weight: 1,
+            opacity: 0.25,
+            fillOpacity: 0.05,
+            interactive: false
+          }).addTo(map);
+        } else {
+          _accuracyCircle.setLatLng([lat, lng]);
+          _accuracyCircle.setRadius(acc);
+        }
+
+        if (_firstFix) {
+          try { map.setView([lat, lng], Math.max(map.getZoom(), 14)); } catch(e) {}
+          _firstFix = false;
+        }
+
+      }, err => {
+        console.warn('Geolocation error', err);
+        showStatus('GPS-fel: ' + (err.message || err.code), 4000);
+      }, options);
+    }
+
+    function stopLocationTracking() {
+      if (_watchId !== null) {
+        navigator.geolocation.clearWatch(_watchId);
+        _watchId = null;
+      }
+      if (_userMarker) { map.removeLayer(_userMarker); _userMarker = null; }
+      if (_accuracyCircle) { map.removeLayer(_accuracyCircle); _accuracyCircle = null; }
+      _firstFix = true;
+    }
+
+    // ---------------------------
+    // Init: auto KML load + auto-start geolocation
+    // ---------------------------
+    (async () => {
+      // attempt auto GitHub load
+      if (!githubAuto.enabled) { showStatus('Automatisk GitHub-laddning inaktiverad'); }
+      else {
+        let owner = githubAuto.owner || null;
+        let repo = githubAuto.repo || null;
+        const branch = githubAuto.branch || undefined;
+        const token = githubAuto.token || undefined;
+        if (!owner || !repo) {
+          const det = detectOwnerRepoFromLocation();
+          if (det) { owner = owner || det.owner; repo = repo || det.repo; console.log('Autodetekterat owner/repo:', owner, repo); }
+        }
+        if (!owner || !repo) {
+          showStatus('Automatisk GitHub-laddning: owner/repo ej angivet och kunde ej upptäckas.', 4000);
+        } else {
+          try { await loadAllKmlFromGitHub(owner, repo, branch, token); } catch (err) { console.error(err); showStatus('GitHub-auto fel: ' + err.message, 5000); }
+        }
+      }
+
+      // Start geolocation tracking automatically (requires HTTPS and user permission)
+      try {
+        startLocationTracking();
+      } catch (e) {
+        console.warn('Kunde inte starta geolocation automatiskt', e);
+      }
     })();
 
     // Layers button toggles the sheet
@@ -330,7 +413,9 @@
     window.AppKml = {
       load: (url, category, name) => loadKml(url, category, name),
       listLayers: () => Object.keys(categories),
-      listFiles: () => mapsMeta.map(m => ({ name: m.name, url: m.url, category: m.category }))
+      listFiles: () => mapsMeta.map(m => ({ name: m.name, url: m.url, category: m.category })),
+      startLocation: startLocationTracking,
+      stopLocation: stopLocationTracking
     };
   </script>
 </body>
