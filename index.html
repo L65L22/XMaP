@@ -47,8 +47,29 @@
   <div id="debug"><strong>Debug log</strong><div id="debugContent"></div></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/togeojson@0.16.0/togeojson.min.js"></script>
+  <!-- Bytt CDN för togeojson till jsDelivr (rätt MIME) -->
+  <script src="https://cdn.jsdelivr.net/npm/togeojson@0.16.0/dist/togeojson.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <script>
+    // Snabb kontroll så att toGeoJSON finns; annars visa tydligt fel i debug
+    (function(){
+      function showMissingLib() {
+        const dbg = document.getElementById('debugContent');
+        if (dbg) {
+          const d = document.createElement('div');
+          d.className = 'debug-row error';
+          d.textContent = 'FEL: toGeoJSON biblioteket laddades inte (ingen conversion möjligt). Om du ser detta: testa att rensa cache eller ladda om sidan. Kontrollera att CDN (jsDelivr) nås.';
+          dbg.prepend(d);
+        }
+        console.error('toGeoJSON saknas: KML/KMZ-konvertering kommer att misslyckas.');
+      }
+      if (typeof toGeoJSON === 'undefined') {
+        // vänta en stund — möjligt att scriptet laddas asynkront, men vi använder synkron inkludering så detta är troligt blockeringsfall
+        setTimeout(()=>{ if (typeof toGeoJSON === 'undefined') showMissingLib(); }, 500);
+      }
+    })();
+  </script>
 
   <script>
     const map = L.map('map').setView([59.33, 18.06], 6);
@@ -101,7 +122,6 @@
         layersListEl.appendChild(div);
       });
 
-      // lista inlästa kartor
       const metaDiv = document.createElement('div');
       metaDiv.style.marginTop = '8px';
       metaDiv.innerHTML = '<strong>Inlästa filer</strong><br/>';
@@ -128,6 +148,8 @@
     async function loadKmlOrKmz(url, categoryName, displayName) {
       setStatus('Försöker ladda: ' + url);
       try {
+        if (typeof toGeoJSON === 'undefined') throw new Error('toGeoJSON saknas — kan inte konvertera KML/KMZ');
+
         let kmlText = null;
         let internalFiles = [];
         if (url.toLowerCase().endsWith('.kmz')) {
@@ -137,7 +159,6 @@
           const zip = await JSZip.loadAsync(ab);
           internalFiles = Object.keys(zip.files);
           setStatus('KMZ interna filer: ' + internalFiles.join(', '));
-          // försök hitta första .kml
           const kmlFileName = internalFiles.find(n => n.toLowerCase().endsWith('.kml'));
           if (!kmlFileName) {
             const msg = 'Ingen .kml hittades i KMZ: ' + url + ' (interna filer: ' + internalFiles.join(', ') + ')';
@@ -151,32 +172,14 @@
           kmlText = await fetchText(url);
         }
 
-        // parse
-        let kmlDoc;
-        try {
-          const parser = new DOMParser();
-          kmlDoc = parser.parseFromString(kmlText, 'text/xml');
-        } catch (e) {
-          setStatus('Fel vid parsning av KML: ' + e.message, true);
-          console.error(e);
-          return;
-        }
-
-        let geojson;
-        try {
-          geojson = toGeoJSON.kml(kmlDoc);
-        } catch (e) {
-          setStatus('togeojson kastade fel: ' + e.message, true);
-          console.error(e);
-          return;
-        }
+        const parser = new DOMParser();
+        const kmlDoc = parser.parseFromString(kmlText, 'text/xml');
+        const geojson = toGeoJSON.kml(kmlDoc);
 
         const featureCount = Array.isArray(geojson.features) ? geojson.features.length : 0;
         setStatus('Konverterat till GeoJSON, features: ' + featureCount);
-        console.log('GeoJSON preview for', url, geojson);
         appendDebug('GeoJSON features för ' + displayName + ': ' + featureCount);
 
-        // add source info
         if (Array.isArray(geojson.features)) {
           geojson.features.forEach(f => {
             if (!f.properties) f.properties = {};
@@ -203,7 +206,6 @@
         renderLayersList();
 
         setStatus('Inläst: ' + (displayName || url) + ' (' + featureCount + ' features)');
-        // fit bounds om giltigt
         try {
           const b = layer.getBounds && layer.getBounds();
           if (b && typeof b.isValid === 'function' ? b.isValid() : (b && b._southWest)) {
