@@ -32,7 +32,31 @@
     }
     .fab:active { transform: translateX(-50%) translateY(1px); }
 
-    /* share-knapp: placera uppe till höger (tvingande regler) */
+    /* drop-knapp: placera uppe till vänster (grön) */
+    .drop-btn {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: #4caf50;
+      color: white;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.24);
+      z-index: 1500;
+      font-size: 18px;
+      border: none;
+      padding: 0;
+      z-index: 99999 !important;
+      display: flex !important;
+      visibility: visible !important;
+    }
+    .drop-btn:active { transform: translateY(1px); }
+
+    /* share-knapp: placera uppe till höger (röd) */
     .share-btn {
       position: fixed;
       top: 12px;
@@ -50,7 +74,6 @@
       font-size: 18px;
       border: none;
       padding: 0;
-      /* Extra kraft: om något försöker dölja knappen så överskrivs det */
       z-index: 99999 !important;
       display: flex !important;
       visibility: visible !important;
@@ -91,7 +114,9 @@
       .fab { width:68px; height:68px; border-radius:34px; font-size:26px; bottom:28px; }
       .sheet { bottom:106px; left: 12px; right: 12px; padding:12px; border-radius:14px; }
       .small-btn { padding:8px 10px; font-size:0.95rem; }
-      .share-btn { width:54px; height:54px; border-radius:10px; font-size:20px; top:16px; right:16px; }
+      .drop-btn, .share-btn { width:54px; height:54px; border-radius:10px; font-size:20px; top:16px; }
+      .drop-btn { left:16px; }
+      .share-btn { right:16px; }
     }
     @media (min-device-width: 360px) and (min-resolution: 2dppx) {
       .fab { width:72px; height:72px; border-radius:36px; font-size:28px; bottom:30px; }
@@ -107,6 +132,8 @@
 
   <div class="status" id="status" aria-live="polite" style="display:none;"></div>
 
+  <!-- drop-knapp uppe till vänster -->
+  <button id="dropPinBtn" class="drop-btn" title="Placera nål">📌</button>
   <!-- share-knapp uppe till höger -->
   <button id="sharePosBtn" class="share-btn" title="Dela min plats">📍</button>
   <button id="layersBtn" class="fab" aria-label="Layers">☰</button>
@@ -130,7 +157,7 @@
       branch: 'main',
     };
 
-    // Alla punkter använder denna fixa standardfärg
+    // Färg / default
     const DEFAULT_POINT_COLOR = '#1976d2';
 
     function filenameWithoutExt(path) {
@@ -157,6 +184,7 @@
       } catch (e) { console.warn('Could not update style for a layer', e); }
     }
 
+    // --- Kartinställningar ---
     const map = L.map('map', { zoomControl: true, tap: true }).setView([59.33, 18.06], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
 
@@ -167,30 +195,25 @@
     const layersSheet = document.getElementById('layersSheet');
     const layersListEl = document.getElementById('layersList');
     const sharePosBtn = document.getElementById('sharePosBtn');
+    const dropPinBtn = document.getElementById('dropPinBtn');
 
-    // Safety: tvinga fram share-knappen i DOM och applicera nödvändiga stilar
-    (function ensureShareButtonVisible(){
-      const btn = sharePosBtn || document.getElementById('sharePosBtn');
-      if (!btn) {
-        console.warn('sharePosBtn saknas i DOM');
-        return;
-      }
-      // Flytta längst bak i body så den inte hamnar bakom något element med clipping
-      document.body.appendChild(btn);
-      // Tvinga CSS-stilar så den ligger ovanpå kartan och är synlig
-      btn.style.display = 'flex';
-      btn.style.visibility = 'visible';
-      btn.style.zIndex = '99999';
-      btn.style.position = 'fixed';
-      btn.style.top = '12px';
-      btn.style.right = '12px';
-      btn.style.width = '44px';
-      btn.style.height = '44px';
-      btn.style.borderRadius = '8px';
-      btn.style.background = '#e53935';
-      btn.style.color = '#fff';
-      btn.style.border = 'none';
-      btn.style.padding = '0';
+    // Safety: tvinga fram knapparna i DOM och applicera nödvändiga stilar
+    (function ensureButtonsVisible(){
+      const btns = [dropPinBtn, sharePosBtn];
+      btns.forEach(b => {
+        if (!b) return;
+        document.body.appendChild(b);
+        b.style.display = 'flex';
+        b.style.visibility = 'visible';
+        b.style.zIndex = '99999';
+      });
+      // Säkerställ positioner
+      dropPinBtn.style.position = 'fixed';
+      dropPinBtn.style.top = '12px';
+      dropPinBtn.style.left = '12px';
+      sharePosBtn.style.position = 'fixed';
+      sharePosBtn.style.top = '12px';
+      sharePosBtn.style.right = '12px';
     })();
 
     function showStatus(msg, timeout = 3000) {
@@ -406,13 +429,13 @@
     }
 
     // ---------------------------
-    // SHARE CURRENT LOCATION: one-shot marker + link
+    // SHARE CURRENT LOCATION: one-shot marker + link (orange)
     // ---------------------------
     let _shareMarker = null;
 
-    function createShareUrl(lat, lng, zoom) {
+    function createShareUrl(lat, lng, zoom, type = 'gps') {
       const base = window.location.origin + window.location.pathname;
-      return `${base}?loc=${lat.toFixed(6)},${lng.toFixed(6)}&z=${zoom}`;
+      return `${base}?loc=${lat.toFixed(6)},${lng.toFixed(6)}&z=${zoom}&t=${encodeURIComponent(type)}`;
     }
 
     function placeShareMarker(lat, lng) {
@@ -446,7 +469,7 @@
         placeShareMarker(lat, lng);
         map.setView([lat, lng], Math.max(zoom, 14));
 
-        const url = createShareUrl(lat, lng, map.getZoom());
+        const url = createShareUrl(lat, lng, map.getZoom(), 'gps');
         await copyToClipboard(url);
         console.log('Dela denna länk:', url);
       }, err => {
@@ -455,19 +478,79 @@
       }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     }
 
-    // Restore marker from URL (?loc=lat,lng&z=zoom)
+    // ---------------------------
+    // DROP PIN: place a green marker on click and share
+    // ---------------------------
+    let _dropMarker = null;
+    let _placingDrop = false;
+
+    function placeDropMarker(lat, lng) {
+      if (!_dropMarker) {
+        _dropMarker = L.circleMarker([lat, lng], {
+          radius:8, color:'#fff', weight:2, fillColor:'#4caf50', fillOpacity:0.95
+        }).addTo(map);
+      } else {
+        _dropMarker.setLatLng([lat, lng]);
+      }
+    }
+
+    function startPlacingDropPin() {
+      if (_placingDrop) {
+        showStatus('Redan i placeringsläge — klicka på kartan.', 2500);
+        return;
+      }
+      _placingDrop = true;
+      showStatus('Klicka på kartan för att placera en grön nål', 5000);
+      map.getContainer().style.cursor = 'crosshair';
+      // one-shot click
+      map.once('click', (e) => {
+        try {
+          const lat = e.latlng.lat;
+          const lng = e.latlng.lng;
+          placeDropMarker(lat, lng);
+          // optionally center
+          map.setView([lat, lng], Math.max(map.getZoom(), 14));
+          // create url with type=drop
+          const url = createShareUrl(lat, lng, map.getZoom(), 'drop');
+          copyToClipboard(url);
+          showStatus('Nål placerad och länk kopierad', 3500);
+          console.log('Dela denna länk:', url);
+        } finally {
+          _placingDrop = false;
+          map.getContainer().style.cursor = '';
+        }
+      });
+
+      // if user clicks elsewhere or wants to cancel, they can click the drop button again to cancel
+      // optional: set a timeout to cancel placement after some time
+      setTimeout(() => {
+        if (_placingDrop) {
+          _placingDrop = false;
+          map.getContainer().style.cursor = '';
+          showStatus('Placeringsläge avbrutet', 2000);
+        }
+      }, 60000); // 60s timeout
+    }
+
+    // Restore marker from URL (?loc=lat,lng&z=zoom&t=drop|gps)
     function restoreFromUrl() {
       try {
         const params = new URLSearchParams(window.location.search);
         const loc = params.get('loc');
         const z = params.get('z');
+        const t = params.get('t');
         if (loc) {
           const [latStr, lngStr] = loc.split(',');
           const lat = parseFloat(latStr);
           const lng = parseFloat(lngStr);
           if (!isNaN(lat) && !isNaN(lng)) {
-            placeShareMarker(lat, lng);
             const zoom = z ? parseInt(z,10) : map.getZoom();
+            if (t === 'drop') {
+              placeDropMarker(lat, lng);
+            } else {
+              // default / 'gps'
+              placeShareMarker(lat, lng);
+            }
             map.setView([lat, lng], isNaN(zoom) ? 14 : zoom);
           }
         }
@@ -496,7 +579,7 @@
         }
       }
 
-      // Restore share marker if URL contains loc
+      // Restore share/drop marker if URL contains loc
       restoreFromUrl();
 
       // Start geolocation tracking automatically (requires HTTPS and user permission)
@@ -514,8 +597,11 @@
       if (open) renderLayersList();
     });
 
-    // Share button handler
+    // Share button handler (GPS)
     sharePosBtn.addEventListener('click', markAndShareCurrentLocation);
+
+    // Drop-pin button handler
+    dropPinBtn.addEventListener('click', startPlacingDropPin);
 
     // Close sheet on map click
     map.on('click', () => {
@@ -531,7 +617,8 @@
       listFiles: () => mapsMeta.map(m => ({ name: filenameWithoutExt(m.name || m.url), url: m.url, count: m.featureCount })),
       startLocation: startLocationTracking,
       stopLocation: stopLocationTracking,
-      shareNow: markAndShareCurrentLocation
+      shareNow: markAndShareCurrentLocation,
+      dropPinMode: startPlacingDropPin
     };
   </script>
 </body>
